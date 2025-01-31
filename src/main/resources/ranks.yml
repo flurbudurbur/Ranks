@@ -1,0 +1,26 @@
+firstToSecond:
+  name: 'first'
+  next:
+    second:
+      requirements:
+        - 'money 3000'
+
+secondToThird:
+  name: 'second'
+  next:
+    third:
+      requirements:
+        - 'money 5000'
+    fourth:
+      requirements:
+        - 'money 8000'
+
+thirdToFourth:
+  name: 'third'
+  next:
+    fourth:
+      requirements:
+        - 'money 13000'
+
+final:
+  name: 'fourth'

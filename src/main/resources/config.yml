@@ -1,0 +1,4 @@
+
+# If you have LuckPerms installed, Ranks will use it instead of Vault.
+prefer-luckperms: true
+

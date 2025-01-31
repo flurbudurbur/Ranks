@@ -1,0 +1,19 @@
+name: ranks
+version: '1.0-SNAPSHOT'
+main: dev.flur.ranks.Ranks
+api-version: '1.8'
+depend:
+  - 'Vault'
+softdepend:
+  - 'PlaceholderAPI'
+  - 'LuckPerms'
+authors:
+  - 'flurbudurbur'
+
+commands:
+  ranks:
+    usage: '/ranks'
+    description: 'View all ranks'
+  rankup:
+    usage: '/rankup'
+    description: 'Rank up to the next rank'
