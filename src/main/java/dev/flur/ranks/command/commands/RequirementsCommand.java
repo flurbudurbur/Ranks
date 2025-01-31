@@ -24,9 +24,22 @@ public class RequirementsCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
         if (commandSender instanceof Player p) {
-            p.sendMessage("Requirements for " + strings[0] + ":");
-            ArrayList<Requirement> reqs = Utils.getRequirements(strings[0], p);
-            reqs.forEach(req -> p.sendMessage(req.toString()));
+            try {
+                if (strings.length >= 1) {
+                    Ranks.getPlugin().getLogger().info("Requirements for " + strings[0] + ":");
+                    ArrayList<Requirement> reqs = Utils.getRequirements(strings[0], p);
+                    if (reqs == null) {
+                        p.sendMessage("Invalid rank");
+                        return true;
+                    }
+                    for (Requirement req : reqs) {
+                        p.sendMessage(req.toString());
+                    }
+                }
+            } catch (Exception e) {
+                p.sendMessage("Invalid input");
+                e.printStackTrace();
+            }
         }
         return true;
     }

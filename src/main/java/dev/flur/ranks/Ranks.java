@@ -12,12 +12,15 @@ public final class Ranks extends JavaPlugin {
 
     private static Economy eco = null;
     private static Permission perms = null;
+    public static boolean debug = false;
 
 
     @Override
     public void onEnable() {
 
         saveDefaultConfig();
+        debug = getConfig().getBoolean("debug");
+
         setupEconomy();
         setupPermissions();
 

@@ -85,9 +85,11 @@ public class Utils {
 
         if (ranksList.containsKey(primaryGroup)) {
             String path = ranksList.get(primaryGroup) + ".next." + next + ".requirements";
+            if (Ranks.debug) Ranks.getPlugin().getLogger().info(path);
             ranksFile.getStringList(path).forEach(req -> {
                 requirements.add(RequirementFactory.registerRequirement(req));
             });
+            if (Ranks.debug) System.out.println(requirements);
         }
         return requirements;
     }
