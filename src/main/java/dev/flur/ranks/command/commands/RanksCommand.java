@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-import static dev.flur.ranks.utils.Init.getRankList;
+import static dev.flur.ranks.utils.Utils.getRankList;
 
 public class RanksCommand implements CommandExecutor, TabCompleter {
 

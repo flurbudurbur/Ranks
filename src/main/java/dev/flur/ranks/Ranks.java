@@ -2,7 +2,7 @@ package dev.flur.ranks;
 
 
 import dev.flur.ranks.command.CommandManager;
-import dev.flur.ranks.utils.Init;
+import dev.flur.ranks.utils.Utils;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -18,12 +18,11 @@ public final class Ranks extends JavaPlugin {
     public void onEnable() {
 
         saveDefaultConfig();
-
-        Init init = new Init(this);
-
-        new CommandManager(this);
         setupEconomy();
         setupPermissions();
+
+        new Utils();
+        new CommandManager();
 
     }
 

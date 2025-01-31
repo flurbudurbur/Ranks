@@ -17,3 +17,8 @@ commands:
   rankup:
     usage: '/rankup'
     description: 'Rank up to the next rank'
+  requirements:
+    usage: '/requirements'
+    description: 'View the requirements for the specified next rank'
+    aliases:
+      - 'reqs'

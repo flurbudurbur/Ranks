@@ -4,6 +4,7 @@ firstToSecond:
     second:
       requirements:
         - 'money 3000'
+        - 'xp-level 5'
 
 secondToThird:
   name: 'second'
