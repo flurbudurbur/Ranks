@@ -2,6 +2,10 @@ package dev.flur.ranks.requirement.requirements;
 
 import dev.flur.ranks.Ranks;
 import dev.flur.ranks.requirement.Requirement;
+import org.bukkit.OfflinePlayer;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Objects;
 
 public class XpLevelRequirement implements Requirement {
 
@@ -19,7 +23,17 @@ public class XpLevelRequirement implements Requirement {
     }
 
     @Override
+    public boolean meetsRequirement(@NotNull OfflinePlayer player) {
+        return Objects.requireNonNull(player.getPlayer()).getLevel() >= level;
+    }
+
+    @Override
     public String toString() {
         return "Xp Level: " + level;
+    }
+
+    @Override
+    public String getName() {
+        return "xp-level";
     }
 }

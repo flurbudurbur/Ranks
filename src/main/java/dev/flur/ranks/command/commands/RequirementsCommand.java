@@ -12,13 +12,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 public class RequirementsCommand implements CommandExecutor, TabCompleter {
 
     public RequirementsCommand() {
-        Ranks.getPlugin().getCommand("requirements").setExecutor(this);
-        Ranks.getPlugin().getCommand("requirements").setTabCompleter(this);
+        Objects.requireNonNull(Ranks.getPlugin().getCommand("requirements")).setExecutor(this);
+        Objects.requireNonNull(Ranks.getPlugin().getCommand("requirements")).setTabCompleter(this);
     }
 
     @Override
@@ -28,24 +30,24 @@ public class RequirementsCommand implements CommandExecutor, TabCompleter {
                 if (strings.length >= 1) {
                     Ranks.getPlugin().getLogger().info("Requirements for " + strings[0] + ":");
                     ArrayList<Requirement> reqs = Utils.getRequirements(strings[0], p);
-                    if (reqs == null) {
-                        p.sendMessage("Invalid rank");
-                        return true;
-                    }
                     for (Requirement req : reqs) {
                         p.sendMessage(req.toString());
                     }
                 }
             } catch (Exception e) {
                 p.sendMessage("Invalid input");
-                e.printStackTrace();
             }
         }
         return true;
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        HashMap<String, String> nexts = Utils.getNext(Ranks.getPermissions().getPrimaryGroup((Player) sender));
+        if (args.length == 1) {
+            return new ArrayList<>(nexts.keySet());
+        }
+
         return List.of();
     }
 }
