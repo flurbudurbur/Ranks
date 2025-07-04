@@ -1,12 +1,13 @@
 package dev.flur.ranks.command.commands;
 
 import dev.flur.ranks.Ranks;
+import dev.flur.ranks.command.BaseCommand;
+import dev.flur.ranks.command.CommandInfo;
 import dev.flur.ranks.requirement.Requirement;
+import dev.flur.ranks.requirement.RequirementFactory;
 import dev.flur.ranks.utils.Utils;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,19 +15,25 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 
-public class RankupCommand implements CommandExecutor, TabCompleter {
+@CommandInfo(
+    name = "rankup",
+    permission = "ranks.rankup",
+    description = "Rank up to the next available rank"
+)
+public class RankupCommand extends BaseCommand {
 
-    public RankupCommand() {
-        Objects.requireNonNull(Ranks.getPlugin().getCommand("rankup")).setExecutor(this);
-        Objects.requireNonNull(Ranks.getPlugin().getCommand("rankup")).setTabCompleter(this);
-    }
+    public RankupCommand() {}
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (sender instanceof Player p) {
             HashMap<String, String> nexts = Utils.getNext(Ranks.getPermissions().getPrimaryGroup(p));
+
+            if (!nexts.containsKey(Ranks.getPermissions().getPrimaryGroup(p))) {
+                throw new IllegalArgumentException("Player is already at the highest rank");
+            }
+
             if (nexts.size() >= 2 && args.length == 0) {
                 p.sendMessage("You have multiple ranks to choose from. Please specify one of the following:");
                 nexts.forEach((key, value) -> p.sendMessage(key));
@@ -50,7 +57,7 @@ public class RankupCommand implements CommandExecutor, TabCompleter {
             int i = 0;
             for (Requirement requirement : requirements) {
                 if (!requirement.meetsRequirement(p)) {
-                    p.sendMessage(requirement.getName() + " wasn't met!");
+                    p.sendMessage(RequirementFactory.getRequirementName(requirement) + " wasn't met!");
                 } else {
                     i++;
                 }

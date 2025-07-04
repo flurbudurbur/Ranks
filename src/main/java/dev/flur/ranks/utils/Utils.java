@@ -7,6 +7,8 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -17,11 +19,11 @@ public class Utils {
     private static HashMap<String, String> ranksList;
 
     public Utils() {
-        this.ranksFile = getFileConfiguration("ranks");
-        ranksList = getRanks(this.ranksFile);
+        ranksFile = getFileConfiguration("ranks");
+        ranksList = getRanks(ranksFile);
     }
 
-    public HashMap<String, String> getRanks(FileConfiguration ranksFile) {
+    public HashMap<String, String> getRanks(@NotNull FileConfiguration ranksFile) {
         HashMap<String, String> ranks = new HashMap<>();
 
         for (String key : ranksFile.getKeys(false)) {
@@ -36,7 +38,7 @@ public class Utils {
         return ranks;
     }
 
-    public static HashMap<String, String> getNext(String rank) {
+    public static @NotNull HashMap<String, String> getNext(String rank) {
         HashMap<String, String> nextRanks = new HashMap<>();
         String path = ranksList.get(rank);
         ConfigurationSection section = ranksFile.getConfigurationSection(path + ".next");
@@ -68,7 +70,7 @@ public class Utils {
                 out.write(buffer, 0, length);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Ranks.getPlugin().getLogger().severe(e.getMessage() + " while generating " + fileName + " file.");
         }
     }
 
@@ -79,22 +81,23 @@ public class Utils {
         return YamlConfiguration.loadConfiguration(ranksFile);
     }
 
-    public static ArrayList<Requirement> getRequirements(String next, Player player) {
+    public static @NotNull ArrayList<Requirement> getRequirements(String next, Player player) {
         ArrayList<Requirement> requirements = new ArrayList<>();
         String primaryGroup = Ranks.getPermissions().getPrimaryGroup(player);
 
         if (ranksList.containsKey(primaryGroup)) {
             String path = ranksList.get(primaryGroup) + ".next." + next + ".requirements";
             if (Ranks.debug) Ranks.getPlugin().getLogger().info(path);
-            ranksFile.getStringList(path).forEach(req -> {
-                requirements.add(RequirementFactory.registerRequirement(req));
-            });
-            if (Ranks.debug) System.out.println(requirements);
+            ranksFile.getStringList(path).forEach( (req) ->
+                requirements.add(RequirementFactory.createRequirement(req))
+            );
+            if (Ranks.debug) Ranks.getPlugin().getLogger().fine("Requirements for " + next + ": " + requirements);
         }
         return requirements;
     }
 
-    public static ArrayList<String> getRankList() {
+    @Contract(" -> new")
+    public static @NotNull ArrayList<String> getRankList() {
         return new ArrayList<>(ranksList.keySet());
     }
 }

@@ -1,39 +1,19 @@
 package dev.flur.ranks.command.commands;
 
-import dev.flur.ranks.Ranks;
-import org.bukkit.command.*;
-import org.bukkit.entity.Player;
+import dev.flur.ranks.command.BaseCommand;
+import dev.flur.ranks.command.CommandInfo;
+import dev.flur.ranks.utils.Utils;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-
-import static dev.flur.ranks.utils.Utils.getRankList;
-
-public class RanksCommand implements CommandExecutor, TabCompleter {
-
-    public RanksCommand() {
-        Ranks.getPlugin().getCommand("ranks").setExecutor(this);
-        Ranks.getPlugin().getCommand("ranks").setTabCompleter(this);
-    }
+@CommandInfo(name = "ranks", permission = "ranks.view", description = "View available ranks")
+public class RanksCommand extends BaseCommand {
 
     @Override
-    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
-        if (commandSender instanceof Player p) {
-            p.sendMessage("Hello, " + p.getName());
-            getRankList().forEach(p::sendMessage);
-        } else {
-            commandSender.sendMessage("Hello, console");
-            getRankList().forEach(commandSender::sendMessage);
-        }
-
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
+                             @NotNull String label, @NotNull String[] args) {
+        Utils.getRankList().forEach(sender::sendMessage);
         return true;
-    }
-
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-
-
-        return List.of();
     }
 }

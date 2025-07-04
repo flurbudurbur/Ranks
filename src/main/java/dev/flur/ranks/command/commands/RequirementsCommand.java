@@ -1,12 +1,12 @@
 package dev.flur.ranks.command.commands;
 
 import dev.flur.ranks.Ranks;
+import dev.flur.ranks.command.BaseCommand;
+import dev.flur.ranks.command.CommandInfo;
 import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.utils.Utils;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,14 +14,15 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 
-public class RequirementsCommand implements CommandExecutor, TabCompleter {
+@CommandInfo(
+    name = "requirements",
+    permission = "ranks.requirements",
+    description = "View requirements for ranks"
+)
+public class RequirementsCommand extends BaseCommand {
 
-    public RequirementsCommand() {
-        Objects.requireNonNull(Ranks.getPlugin().getCommand("requirements")).setExecutor(this);
-        Objects.requireNonNull(Ranks.getPlugin().getCommand("requirements")).setTabCompleter(this);
-    }
+    public RequirementsCommand() {}
 
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {

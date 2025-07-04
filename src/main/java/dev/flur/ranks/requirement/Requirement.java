@@ -7,5 +7,5 @@ public interface Requirement {
 
     boolean meetsRequirement(@NotNull OfflinePlayer player);
     String toString();
-    String getName();
+
 }

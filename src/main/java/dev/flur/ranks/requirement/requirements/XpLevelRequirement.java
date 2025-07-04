@@ -1,39 +1,32 @@
 package dev.flur.ranks.requirement.requirements;
 
-import dev.flur.ranks.Ranks;
-import dev.flur.ranks.requirement.Requirement;
+import dev.flur.ranks.requirement.AnnotatedRequirement;
+import dev.flur.ranks.requirement.RequirementName;
+import dev.flur.ranks.requirement.RequirementParams;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
-public class XpLevelRequirement implements Requirement {
 
-    private int level;
+@RequirementName("xp-level")
+@RequirementParams(usage = "Format: level")
+public final class XpLevelRequirement extends AnnotatedRequirement {
+
+    private final int level;
 
     public XpLevelRequirement(String[] params) {
-        if (params.length != 1) throw new IllegalArgumentException("Invalid input");
+        super(params);
+
         try {
-            level = Integer.parseInt(params[0]);
+            this.level = Integer.parseInt(params[0]);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid input");
-        } catch (ArrayIndexOutOfBoundsException e) {
-            Ranks.getPlugin().getLogger().severe("ArrayIndexOutOfBoundsException");
+            throw new IllegalArgumentException("Invalid XP level format: " + params[0]);
         }
     }
 
     @Override
     public boolean meetsRequirement(@NotNull OfflinePlayer player) {
-        return Objects.requireNonNull(player.getPlayer()).getLevel() >= level;
-    }
-
-    @Override
-    public String toString() {
-        return "Xp Level: " + level;
-    }
-
-    @Override
-    public String getName() {
-        return "xp-level";
+        return this.level <= Objects.requireNonNull(player.getPlayer()).getLevel();
     }
 }

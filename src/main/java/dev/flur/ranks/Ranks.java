@@ -1,17 +1,17 @@
 package dev.flur.ranks;
 
 
-import dev.flur.ranks.command.CommandManager;
+import dev.flur.ranks.command.AnnotationCommandManager;
 import dev.flur.ranks.utils.Utils;
+import dev.flur.ranks.vault.DefaultVaultProvider;
+import dev.flur.ranks.vault.VaultProvider;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
-import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class Ranks extends JavaPlugin {
+public class Ranks extends JavaPlugin {
 
-    private static Economy eco = null;
-    private static Permission perms = null;
+    private static VaultProvider vaultProvider;
     public static boolean debug = false;
 
 
@@ -21,42 +21,31 @@ public final class Ranks extends JavaPlugin {
         saveDefaultConfig();
         debug = getConfig().getBoolean("debug");
 
-        setupEconomy();
-        setupPermissions();
+        vaultProvider = new DefaultVaultProvider(this);
+
+        // Initialize command manager to register annotation-based commands
+        new AnnotationCommandManager(this);
 
         new Utils();
-        new CommandManager();
-
-    }
-
-    private boolean setupEconomy() {
-        if (getServer().getPluginManager().getPlugin("Vault") == null) {
-            return false;
-        }
-        RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
-        if (rsp == null) {
-            return false;
-        }
-        eco = rsp.getProvider();
-        return eco != null;
-    }
-
-    private boolean setupPermissions() {
-        RegisteredServiceProvider<Permission> rsp = getServer().getServicesManager().getRegistration(Permission.class);
-        perms = rsp.getProvider();
-        return perms != null;
     }
 
     public static Economy getEconomy() {
-        return eco;
+        return vaultProvider.getEconomy();
     }
 
     public static Permission getPermissions() {
-        return perms;
+        return vaultProvider.getPermissions();
     }
 
     public static Ranks getPlugin() {
         return getPlugin(Ranks.class);
     }
 
+    public static VaultProvider getVaultProvider() {
+        return vaultProvider;
+    }
+
+    public static void setVaultProvider(VaultProvider provider) {
+        vaultProvider = provider;
+    }
 }

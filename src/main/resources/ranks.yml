@@ -12,6 +12,7 @@ secondToThird:
     third:
       requirements:
         - 'money 5000'
+        - 'block-break stone granite oak_log 2000'
     fourth:
       requirements:
         - 'money 8000'

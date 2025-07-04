@@ -23,9 +23,51 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
+                <executions>
+                    <!-- First phase: compile annotation processor only -->
+                    <execution>
+                        <id>compile-processor</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <proc>none</proc>
+                            <includes>
+                                <include>**/processor/**/*.java</include>
+                            </includes>
+                            <source>${java.version}</source>
+                            <target>${java.version}</target>
+                        </configuration>
+                    </execution>
+                    <!-- Second phase: compile everything else with annotation processing -->
+                    <execution>
+                        <id>compile-project</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <proc>full</proc>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>${project.artifactId}</artifactId>
+                                    <version>${project.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                            <annotationProcessors>
+                                <annotationProcessor>dev.flur.ranks.processor.CommandAnnotationProcessor</annotationProcessor>
+                            </annotationProcessors>
+                            <source>${java.version}</source>
+                            <target>${java.version}</target>
+                        </configuration>
+                    </execution>
+                </executions>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <skip>true</skip>
                 </configuration>
             </plugin>
             <plugin>
@@ -38,6 +80,24 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>merge-plugin-yml</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>dev.flur.ranks.processor.PluginYmlMerger</mainClass>
+                            <classpathScope>compile</classpathScope>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -77,9 +137,20 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.8.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>0.10.2</version>
+        </dependency>
+        <dependency>
             <groupId>io.pebbletemplates</groupId>
             <artifactId>pebble</artifactId>
-            <version>3.2.2</version>
+            <version>3.2.4</version>
         </dependency>
         <dependency>
             <groupId>com.github.seeseemelk</groupId>
@@ -97,6 +168,16 @@
             <artifactId>spigot-api</artifactId>
             <version>1.21-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>2.0</version>
         </dependency>
     </dependencies>
 </project>

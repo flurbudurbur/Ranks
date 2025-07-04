@@ -1,16 +1,21 @@
 package dev.flur.ranks.requirement.requirements;
 
 import dev.flur.ranks.Ranks;
-import dev.flur.ranks.requirement.Requirement;
+import dev.flur.ranks.requirement.AnnotatedRequirement;
+import dev.flur.ranks.requirement.RequirementName;
+import dev.flur.ranks.requirement.RequirementParams;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
 import org.jetbrains.annotations.NotNull;
 
-public class DeathsRequirement implements Requirement {
+@RequirementName("deaths")
+@RequirementParams(usage = "Format: deaths")
+public final class DeathsRequirement extends AnnotatedRequirement {
 
     private int deaths = 0;
 
     public DeathsRequirement(String[] params) {
+        super(params);
         try {
             this.deaths = Integer.parseInt(params[0]);
         } catch (NumberFormatException e) {
@@ -23,8 +28,4 @@ public class DeathsRequirement implements Requirement {
         return player.getStatistic(Statistic.DEATHS) >= deaths;
     }
 
-    @Override
-    public String getName() {
-        return "deaths";
-    }
 }

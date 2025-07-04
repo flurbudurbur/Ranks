@@ -1,37 +1,30 @@
 package dev.flur.ranks.requirement.requirements;
 
 import dev.flur.ranks.Ranks;
-import dev.flur.ranks.requirement.Requirement;
+import dev.flur.ranks.requirement.AnnotatedRequirement;
+import dev.flur.ranks.requirement.RequirementName;
+import dev.flur.ranks.requirement.RequirementParams;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
-public class MoneyRequirement implements Requirement {
+@RequirementName("money")
+@RequirementParams(usage = "Format: amount")
+public final class MoneyRequirement extends AnnotatedRequirement {
 
-    private final double money;
+    private final double amount;
 
     public MoneyRequirement(String[] params) {
-        if (Ranks.getEconomy() == null) throw new IllegalStateException("Economy not found");
-        if (params.length != 1) throw new IllegalArgumentException("Invalid input");
+        super(params);
+
         try {
-            money = Double.parseDouble(params[0]);
+            this.amount = Double.parseDouble(params[0]);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid input");
+            throw new IllegalArgumentException("Invalid amount format: " + params[0]);
         }
     }
 
     @Override
     public boolean meetsRequirement(@NotNull OfflinePlayer player) {
-        double balance = Ranks.getEconomy().getBalance(player);
-        return balance >= money;
-    }
-
-    @Override
-    public String toString() {
-        return "Money: " + money;
-    }
-
-    @Override
-    public String getName() {
-        return "money";
+        return Ranks.getEconomy().getBalance(player) >= this.amount;
     }
 }
