@@ -5,114 +5,189 @@ import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.requirement.RequirementFactory;
 import dev.flur.ranks.requirement.RequirementRegistry;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
+/**
+ * Tests for the MoneyRequirement class.
+ */
 @DisplayName("Money Requirement Tests")
 public class MoneyRequirementTest extends AbstractRequirementTest {
 
-    /**
-     * Provider method for money requirement test cases
-     */
-    public static Stream<Arguments> moneyRequirementTestCases() {
-        RequirementRegistry.RequirementInfo moneyInfo = RequirementRegistry.fromName("money");
-        assertNotNull(moneyInfo, "money requirement should be registered");
+    @Test
+    @DisplayName("Player balance higher than required should pass")
+    void playerBalanceHigherThanRequiredShouldPass() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("money");
+        assertNotNull(info, "Money requirement should be registered");
 
-        List<RequirementTestCase> testCases = Arrays.asList(
-                // Money requirement test cases
-                new RequirementTestCase(moneyInfo, "money 100.50", true, "valid money amount"),
-                new RequirementTestCase(moneyInfo, "money 0", true, "zero money amount"),
-                // Note: The implementation doesn't check for negative values,
-                // so we're treating it as a valid input for now
-                new RequirementTestCase(moneyInfo, "money -50", true, "negative money amount"),
-                new RequirementTestCase(moneyInfo, "money abc", false, "invalid money format"),
-                new RequirementTestCase(moneyInfo, "money", false, "missing money amount"),
-                new RequirementTestCase(moneyInfo, "money 100 extra", false, "too many arguments")
-        );
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("money 500");
 
-        return testCases.stream().map(Arguments::of);
+        // Verify
+        assertTrue(requirement.meetsRequirement(mockPlayer),
+                "Player with balance 1000.0 should meet requirement of 500.0");
     }
 
-    @Nested
-    @DisplayName("Money Requirement Creation Tests")
-    class MoneyRequirementCreationTests {
+    @Test
+    @DisplayName("Player balance equal to required should pass")
+    void playerBalanceEqualToRequiredShouldPass() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("money");
+        assertNotNull(info, "Money requirement should be registered");
 
-        @ParameterizedTest
-        @MethodSource("dev.flur.ranks.requirement.requirements.MoneyRequirementTest#moneyRequirementTestCases")
-        @DisplayName("Should handle money requirement creation as expected")
-        void shouldHandleMoneyRequirementCreationAsExpected(RequirementTestCase testCase) {
-            if (testCase.shouldSucceed()) {
-                // Expected to succeed
-                assertDoesNotThrow(() -> {
-                    Requirement requirement = RequirementFactory.createRequirement(testCase.input());
-                    assertNotNull(requirement, "Requirement should be created for: " + testCase.description());
-                    assertEquals(testCase.requirementInfo().requirementClass(), requirement.getClass(),
-                            "Should create correct requirement class for: " + testCase.description());
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("money 1000");
 
-                    // Verify name retrieval
-                    String name = RequirementFactory.getRequirementName(requirement);
-                    assertEquals(testCase.requirementInfo().name(), name,
-                            "Should return correct name for: " + testCase.description());
-                }, "Should succeed for: " + testCase.description());
-            } else {
-                // Expected to fail
-                assertThrows(Exception.class, 
-                    () -> RequirementFactory.createRequirement(testCase.input()),
-                    "Should throw exception for: " + testCase.description());
-            }
-        }
+        // Verify
+        assertTrue(requirement.meetsRequirement(mockPlayer),
+                "Player with balance 1000.0 should meet requirement of 1000.0");
     }
 
-    @Nested
-    @DisplayName("Money Requirement Validation Tests")
-    class MoneyRequirementValidationTests {
+    @Test
+    @DisplayName("Player balance meets decimal requirement should pass")
+    void playerBalanceMeetsDecimalRequirementShouldPass() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("money");
+        assertNotNull(info, "Money requirement should be registered");
 
-        @TestFactory
-        @DisplayName("Should validate all money success cases work correctly")
-        Stream<DynamicTest> shouldValidateAllMoneySuccessCasesWorkCorrectly() {
-            return moneyRequirementTestCases()
-                    .map(args -> (RequirementTestCase) args.get()[0])
-                    .filter(RequirementTestCase::shouldSucceed)
-                    .map(testCase -> DynamicTest.dynamicTest(
-                            "Success: " + testCase,
-                            () -> {
-                                Requirement requirement = RequirementFactory.createRequirement(testCase.input());
-                                assertNotNull(requirement, "Requirement should be created");
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("money 999.99");
 
-                                // Test string representation
-                                String stringRep = requirement.toString();
-                                assertNotNull(stringRep, "String representation should not be null");
-                                assertFalse(stringRep.isEmpty(), "String representation should not be empty");
+        // Verify
+        assertTrue(requirement.meetsRequirement(mockPlayer),
+                "Player with balance 1000.0 should meet requirement of 999.99");
+    }
 
-                                // Test requirement validation (may fail due to mocking, but shouldn't throw)
-                                assertDoesNotThrow(() -> requirement.meetsRequirement(mockPlayer), 
-                                "Should not throw when checking requirement");
-                            }
-                    ));
-        }
+    @Test
+    @DisplayName("Player balance lower than required should fail")
+    void playerBalanceLowerThanRequiredShouldFail() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("money");
+        assertNotNull(info, "Money requirement should be registered");
 
-        @TestFactory
-        @DisplayName("Should validate all money failure cases fail as expected")
-        Stream<DynamicTest> shouldValidateAllMoneyFailureCasesFailAsExpected() {
-            return moneyRequirementTestCases()
-                    .map(args -> (RequirementTestCase) args.get()[0])
-                    .filter(testCase -> !testCase.shouldSucceed())
-                    .map(testCase -> DynamicTest.dynamicTest(
-                            "Failure: " + testCase,
-                            () -> assertThrows(Exception.class, 
-                                    () -> RequirementFactory.createRequirement(testCase.input()),
-                                    "Should throw exception for: " + testCase.description())
-                    ));
-        }
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("money 1500");
+
+        // Verify
+        assertFalse(requirement.meetsRequirement(mockPlayer),
+                "Player with balance 1000.0 should not meet requirement of 1500.0");
+    }
+
+    @Test
+    @DisplayName("Negative amount should be invalid")
+    void negativeAmountShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("money");
+        assertNotNull(info, "Money requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("money -500");
+        }, "Negative amount should not be valid");
+    }
+
+    @Test
+    @DisplayName("Non-numeric amount should be invalid")
+    void nonNumericAmountShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("money");
+        assertNotNull(info, "Money requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("money abc");
+        }, "Non-numeric amount should not be valid");
+    }
+
+    @Test
+    @DisplayName("Missing parameter should be invalid")
+    void missingParameterShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("money");
+        assertNotNull(info, "Money requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("money");
+        }, "Missing amount parameter should not be valid");
+    }
+
+    @Test
+    @DisplayName("Too many parameters should be invalid")
+    void tooManyParametersShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("money");
+        assertNotNull(info, "Money requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("money 1000 2000");
+        }, "Too many parameters should not be valid");
+    }
+
+    @Test
+    @DisplayName("Money requirement should be registered")
+    void shouldBeRegistered() {
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("money");
+        assertNotNull(info, "Money requirement should be registered");
+        assertEquals(MoneyRequirement.class, info.requirementClass(), 
+                "Money requirement should be registered with correct class");
+    }
+
+    @Test
+    @DisplayName("Money requirement should validate parameters")
+    void shouldValidateParameters() {
+        // Valid parameters
+        assertDoesNotThrow(() -> new MoneyRequirement(new String[] { "1000" }), 
+                "Valid amount should not throw exception");
+
+        // Valid parameters - decimal
+        assertDoesNotThrow(() -> new MoneyRequirement(new String[] { "1000.50" }), 
+                "Valid decimal amount should not throw exception");
+
+        // Invalid parameters - missing
+        assertThrows(IllegalArgumentException.class, 
+                () -> new MoneyRequirement(new String[] {}), 
+                "Missing amount should throw exception");
+
+        // Invalid parameters - too many
+        assertThrows(IllegalArgumentException.class, 
+                () -> new MoneyRequirement(new String[] { "1000", "2000" }), 
+                "Too many parameters should throw exception");
+
+        // Invalid parameters - non-numeric
+        assertThrows(IllegalArgumentException.class, 
+                () -> new MoneyRequirement(new String[] { "abc" }), 
+                "Non-numeric amount should throw exception");
+    }
+
+    @Test
+    @DisplayName("Money requirement should check player balance correctly")
+    void shouldCheckPlayerBalanceCorrectly() {
+        // Player balance is 1000.0 (set in AbstractRequirementTest.setUp())
+
+        // Amount requirement is 500.0 (less than player balance) - should succeed
+        MoneyRequirement lowerRequirement = new MoneyRequirement(new String[] { "500" });
+        assertTrue(lowerRequirement.meetsRequirement(mockPlayer), 
+                "Player with balance 1000.0 should meet requirement of 500.0");
+
+        // Amount requirement is 1000.0 (equal to player balance) - should succeed
+        MoneyRequirement equalRequirement = new MoneyRequirement(new String[] { "1000" });
+        assertTrue(equalRequirement.meetsRequirement(mockPlayer), 
+                "Player with balance 1000.0 should meet requirement of 1000.0");
+
+        // Amount requirement is 1500.0 (greater than player balance) - should fail
+        MoneyRequirement higherRequirement = new MoneyRequirement(new String[] { "1500" });
+        assertFalse(higherRequirement.meetsRequirement(mockPlayer), 
+                "Player with balance 1000.0 should not meet requirement of 1500.0");
+
+        // Test with different balance
+        when(mockEconomy.getBalance(any(org.bukkit.OfflinePlayer.class))).thenReturn(Double.valueOf(2000.0));
+        assertTrue(higherRequirement.meetsRequirement(mockPlayer), 
+                "Player with balance 2000.0 should meet requirement of 1500.0");
     }
 }

@@ -10,10 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Stream;
-
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
@@ -69,58 +65,5 @@ public abstract class AbstractRequirementTest {
     void tearDown() {
         // Restore the original VaultProvider
         Ranks.setVaultProvider(originalVaultProvider);
-    }
-
-    /**
-         * Test case data for each requirement type with expected outcomes
-         */
-        public record RequirementTestCase(RequirementRegistry.RequirementInfo requirementInfo, String input,
-                                          boolean shouldSucceed, String description) {
-
-        @Override
-            public String toString() {
-                return requirementInfo.name() + " - " + description;
-            }
-        }
-
-    /**
-     * Validates that all registered requirements are covered in the test cases
-     */
-    protected static void validateAllRequirementsCovered(List<RequirementTestCase> testCases) {
-        Collection<RequirementRegistry.RequirementInfo> allRequirements = RequirementRegistry.getAllRequirements();
-
-        // Get unique types from test cases
-        List<RequirementRegistry.RequirementInfo> coveredRequirements = testCases.stream()
-                .map(RequirementTestCase::requirementInfo)
-                .distinct()
-                .toList();
-
-        // Check if all registered requirements are covered
-        for (RequirementRegistry.RequirementInfo info : allRequirements) {
-            if (!coveredRequirements.contains(info)) {
-                throw new IllegalStateException(
-                        "Requirement " + info.name() + " is not covered in test cases. " +
-                                "Please add test cases for this requirement type."
-                );
-            }
-        }
-
-        // Check if there are extra types (shouldn't happen but good to verify)
-        for (RequirementRegistry.RequirementInfo info : coveredRequirements) {
-            if (!allRequirements.contains(info)) {
-                throw new IllegalStateException(
-                        "Test case contains unknown requirement: " + info.name()
-                );
-            }
-        }
-
-        System.out.println("✓ All " + allRequirements.size() + " registered requirements are covered in test cases");
-    }
-
-    /**
-     * Get test cases for a specific requirement type
-     */
-    protected static Stream<RequirementTestCase> getTestCasesForRequirement(Stream<RequirementTestCase> allTestCases, RequirementRegistry.RequirementInfo requirementInfo) {
-        return allTestCases.filter(testCase -> testCase.requirementInfo().equals(requirementInfo));
     }
 }

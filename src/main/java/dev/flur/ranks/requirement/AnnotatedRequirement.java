@@ -6,9 +6,11 @@ import org.jetbrains.annotations.NotNull;
 public abstract class AnnotatedRequirement implements Requirement {
 
     protected final String[] params;
+    protected final double amount;
 
     public AnnotatedRequirement(String @NotNull [] params) {
         validateParametersFromAnnotation(params);
+        this.amount = validateRequirementAmount(params);
         this.params = params;
     }
 
@@ -21,6 +23,19 @@ public abstract class AnnotatedRequirement implements Requirement {
             if (params.length > annotation.maximum()) {
                 throw new IllegalArgumentException("Too many arguments: " + annotation.usage());
             }
+        }
+    }
+
+    protected double validateRequirementAmount(String[] params) {
+        try {
+            double amount = Double.parseDouble(params[params.length -1]);
+            if (amount > 0) {
+                return amount;
+            } else {
+                throw new IllegalArgumentException();
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid amount. Must be a zero-inclusive positive value");
         }
     }
 

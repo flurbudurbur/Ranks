@@ -8,23 +8,15 @@ import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
 @RequirementName("money")
-@RequirementParams(usage = "Format: amount")
+@RequirementParams(maximum = 1, usage = "Format: amount")
 public final class MoneyRequirement extends AnnotatedRequirement {
-
-    private final double amount;
 
     public MoneyRequirement(String[] params) {
         super(params);
-
-        try {
-            this.amount = Double.parseDouble(params[0]);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid amount format: " + params[0]);
-        }
     }
 
     @Override
     public boolean meetsRequirement(@NotNull OfflinePlayer player) {
-        return Ranks.getEconomy().getBalance(player) >= this.amount;
+        return Ranks.getEconomy().getBalance(player) >= super.amount;
     }
 }

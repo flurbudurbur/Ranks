@@ -114,8 +114,12 @@ public class RequirementRegistry {
                 Constructor<? extends AnnotatedRequirement> constructor =
                         clazz.getConstructor(String[].class);
                 return constructor.newInstance((Object) params);
-            } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
-                     InvocationTargetException e) {
+            } catch (InvocationTargetException e) {
+                if (e.getCause() instanceof IllegalArgumentException) {
+                    throw (IllegalArgumentException) e.getCause();
+                }
+                throw new RuntimeException("Failed to create requirement instance: " + clazz.getName(), e);
+            } catch (NoSuchMethodException | InstantiationException | IllegalAccessException e) {
                 throw new RuntimeException("Failed to create requirement instance: " + clazz.getName(), e);
             }
         };

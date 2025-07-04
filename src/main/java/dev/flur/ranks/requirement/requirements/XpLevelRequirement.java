@@ -10,23 +10,15 @@ import java.util.Objects;
 
 
 @RequirementName("xp-level")
-@RequirementParams(usage = "Format: level")
+@RequirementParams(minimum = 1, maximum = 1, usage = "Format: level")
 public final class XpLevelRequirement extends AnnotatedRequirement {
-
-    private final int level;
 
     public XpLevelRequirement(String[] params) {
         super(params);
-
-        try {
-            this.level = Integer.parseInt(params[0]);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid XP level format: " + params[0]);
-        }
     }
 
     @Override
     public boolean meetsRequirement(@NotNull OfflinePlayer player) {
-        return this.level <= Objects.requireNonNull(player.getPlayer()).getLevel();
+        return (int) super.amount <= Objects.requireNonNull(player.getPlayer()).getLevel();
     }
 }

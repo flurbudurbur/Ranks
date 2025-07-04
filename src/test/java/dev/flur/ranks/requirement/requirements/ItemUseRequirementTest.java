@@ -4,117 +4,271 @@ import dev.flur.ranks.requirement.AbstractRequirementTest;
 import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.requirement.RequirementFactory;
 import dev.flur.ranks.requirement.RequirementRegistry;
+import org.bukkit.Material;
+import org.bukkit.Statistic;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
+/**
+ * Tests for the ItemUseRequirement class.
+ */
 @DisplayName("Item Use Requirement Tests")
 public class ItemUseRequirementTest extends AbstractRequirementTest {
 
-    /**
-     * Provider method for item use requirement test cases
-     */
-    public static Stream<Arguments> itemUseRequirementTestCases() {
-        RequirementRegistry.RequirementInfo itemUseInfo = RequirementRegistry.fromName("item-use");
-        assertNotNull(itemUseInfo, "item-use requirement should be registered");
+    @Test
+    @DisplayName("Player has used more items than required should pass")
+    void playerHasUsedMoreItemsThanRequiredShouldPass() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+        when(mockPlayerEntity.getStatistic(eq(Statistic.USE_ITEM), eq(Material.DIAMOND_SWORD))).thenReturn(20);
 
-        List<RequirementTestCase> testCases = Arrays.asList(
-                // Item use requirement test cases - valid formats
-                new RequirementTestCase(itemUseInfo, "item-use STONE 10", true, "valid single item"),
-                new RequirementTestCase(itemUseInfo, "item-use DIAMOND_SWORD 5", true, "valid single tool"),
-                new RequirementTestCase(itemUseInfo, "item-use STONE DIAMOND_SWORD 15", true, "multiple items"),
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("item-use DIAMOND_SWORD 10");
 
-                // Item use requirement test cases - invalid formats
-                new RequirementTestCase(itemUseInfo, "item-use INVALID_ITEM 10", false, "invalid item material"),
-                new RequirementTestCase(itemUseInfo, "item-use STONE abc", false, "invalid amount format"),
-                new RequirementTestCase(itemUseInfo, "item-use STONE", false, "missing amount"),
-                new RequirementTestCase(itemUseInfo, "item-use", false, "missing item and amount"),
-                new RequirementTestCase(itemUseInfo, "item-use AIR 10", false, "non-item material")
-        );
-
-        return testCases.stream().map(Arguments::of);
+        // Verify
+        assertTrue(requirement.meetsRequirement(mockPlayer),
+                "Player with 20 DIAMOND_SWORD uses should meet requirement of 10");
     }
 
-    @Nested
-    @DisplayName("Item Use Requirement Creation Tests")
-    class ItemUseRequirementCreationTests {
+    @Test
+    @DisplayName("Player has used exactly the required number of items should pass")
+    void playerHasUsedExactlyRequiredNumberOfItemsShouldPass() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+        when(mockPlayerEntity.getStatistic(eq(Statistic.USE_ITEM), eq(Material.DIAMOND_SWORD))).thenReturn(20);
 
-        @ParameterizedTest
-        @MethodSource("dev.flur.ranks.requirement.requirements.ItemUseRequirementTest#itemUseRequirementTestCases")
-        @DisplayName("Should handle item use requirement creation as expected")
-        void shouldHandleItemUseRequirementCreationAsExpected(RequirementTestCase testCase) {
-            if (testCase.shouldSucceed()) {
-                // Expected to succeed
-                assertDoesNotThrow(() -> {
-                    Requirement requirement = RequirementFactory.createRequirement(testCase.input());
-                    assertNotNull(requirement, "Requirement should be created for: " + testCase.description());
-                    assertEquals(testCase.requirementInfo().requirementClass(), requirement.getClass(),
-                            "Should create correct requirement class for: " + testCase.description());
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("item-use DIAMOND_SWORD 20");
 
-                    // Verify name retrieval
-                    String name = RequirementFactory.getRequirementName(requirement);
-                    assertEquals(testCase.requirementInfo().name(), name,
-                            "Should return correct name for: " + testCase.description());
-                }, "Should succeed for: " + testCase.description());
-            } else {
-                // Expected to fail
-                assertThrows(Exception.class, 
-                    () -> RequirementFactory.createRequirement(testCase.input()),
-                    "Should throw exception for: " + testCase.description());
-            }
-        }
+        // Verify
+        assertTrue(requirement.meetsRequirement(mockPlayer),
+                "Player with 20 DIAMOND_SWORD uses should meet requirement of 20");
     }
 
-    @Nested
-    @DisplayName("Item Use Requirement Validation Tests")
-    class ItemUseRequirementValidationTests {
+    @Test
+    @DisplayName("Player has used multiple item types should pass")
+    void playerHasUsedMultipleItemTypesShouldPass() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+        when(mockPlayerEntity.getStatistic(eq(Statistic.USE_ITEM), eq(Material.DIAMOND_SWORD))).thenReturn(20);
+        when(mockPlayerEntity.getStatistic(eq(Statistic.USE_ITEM), eq(Material.BOW))).thenReturn(10);
 
-        @TestFactory
-        @DisplayName("Should validate all item use success cases work correctly")
-        Stream<DynamicTest> shouldValidateAllItemUseSuccessCasesWorkCorrectly() {
-            return itemUseRequirementTestCases()
-                    .map(args -> (RequirementTestCase) args.get()[0])
-                    .filter(RequirementTestCase::shouldSucceed)
-                    .map(testCase -> DynamicTest.dynamicTest(
-                            "Success: " + testCase,
-                            () -> {
-                                Requirement requirement = RequirementFactory.createRequirement(testCase.input());
-                                assertNotNull(requirement, "Requirement should be created");
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("item-use DIAMOND_SWORD BOW 15");
 
-                                // Test string representation
-                                String stringRep = requirement.toString();
-                                assertNotNull(stringRep, "String representation should not be null");
-                                assertFalse(stringRep.isEmpty(), "String representation should not be empty");
+        // Verify
+        assertTrue(requirement.meetsRequirement(mockPlayer),
+                "Player with 20 DIAMOND_SWORD and 10 BOW uses (30 total) should meet requirement of 15");
+    }
 
-                                // Test requirement validation (may fail due to mocking, but shouldn't throw)
-                                assertDoesNotThrow(() -> requirement.meetsRequirement(mockPlayer), 
-                                "Should not throw when checking requirement");
-                            }
-                    ));
-        }
+    @Test
+    @DisplayName("Player has used fewer items than required should fail")
+    void playerHasUsedFewerItemsThanRequiredShouldFail() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+        when(mockPlayerEntity.getStatistic(eq(Statistic.USE_ITEM), eq(Material.DIAMOND_SWORD))).thenReturn(20);
 
-        @TestFactory
-        @DisplayName("Should validate all item use failure cases fail as expected")
-        Stream<DynamicTest> shouldValidateAllItemUseFailureCasesFailAsExpected() {
-            return itemUseRequirementTestCases()
-                    .map(args -> (RequirementTestCase) args.get()[0])
-                    .filter(testCase -> !testCase.shouldSucceed())
-                    .map(testCase -> DynamicTest.dynamicTest(
-                            "Failure: " + testCase,
-                            () -> assertThrows(Exception.class, 
-                                    () -> RequirementFactory.createRequirement(testCase.input()),
-                                    "Should throw exception for: " + testCase.description())
-                    ));
-        }
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("item-use DIAMOND_SWORD 30");
+
+        // Verify
+        assertFalse(requirement.meetsRequirement(mockPlayer),
+                "Player with 20 DIAMOND_SWORD uses should not meet requirement of 30");
+    }
+
+    @Test
+    @DisplayName("Player has used no items of the required type should fail")
+    void playerHasUsedNoItemsOfRequiredTypeShouldFail() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+        when(mockPlayerEntity.getStatistic(eq(Statistic.USE_ITEM), eq(Material.GOLDEN_APPLE))).thenReturn(0);
+
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("item-use GOLDEN_APPLE 5");
+
+        // Verify
+        assertFalse(requirement.meetsRequirement(mockPlayer),
+                "Player with 0 GOLDEN_APPLE uses should not meet requirement of 5");
+    }
+
+    @Test
+    @DisplayName("Invalid item material should be invalid")
+    void invalidItemMaterialShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("item-use INVALID_MATERIAL 10");
+        }, "Invalid item material should not be valid");
+    }
+
+    @Test
+    @DisplayName("Non-item material should be invalid")
+    void nonItemMaterialShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("item-use STONE 10");
+        }, "Non-item material should not be valid");
+    }
+
+    @Test
+    @DisplayName("Invalid amount format should be invalid")
+    void invalidAmountFormatShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("item-use DIAMOND_SWORD abc");
+        }, "Non-numeric amount should not be valid");
+    }
+
+    @Test
+    @DisplayName("Missing amount parameter should be invalid")
+    void missingAmountParameterShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("item-use DIAMOND_SWORD");
+        }, "Missing amount parameter should not be valid");
+    }
+
+    @Test
+    @DisplayName("Missing item parameter should be invalid")
+    void missingItemParameterShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("item-use 10");
+        }, "Missing item parameter should not be valid");
+    }
+
+    @Test
+    @DisplayName("Too many items should be invalid")
+    void tooManyItemsShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("item-use DIAMOND_SWORD IRON_SWORD GOLDEN_SWORD STONE_SWORD WOODEN_SWORD BOW CROSSBOW TRIDENT SHIELD FISHING_ROD 10");
+        }, "Too many items should not be valid (exceeds maximum of 10 parameters)");
+    }
+
+    @Test
+    @DisplayName("Item Use requirement should be registered")
+    void shouldBeRegistered() {
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("item-use");
+        assertNotNull(info, "Item Use requirement should be registered");
+        assertEquals(ItemUseRequirement.class, info.requirementClass(), 
+                "Item Use requirement should be registered with correct class");
+    }
+
+    @Test
+    @DisplayName("Item Use requirement should validate parameters")
+    void shouldValidateParameters() {
+        // Valid parameters - single item
+        assertDoesNotThrow(() -> new ItemUseRequirement(new String[] { "DIAMOND_SWORD", "10" }), 
+                "Valid item and amount should not throw exception");
+
+        // Valid parameters - multiple items
+        assertDoesNotThrow(() -> new ItemUseRequirement(new String[] { "DIAMOND_SWORD", "BOW", "10" }), 
+                "Multiple valid items and amount should not throw exception");
+
+        // Invalid parameters - missing item
+        assertThrows(IllegalArgumentException.class, 
+                () -> new ItemUseRequirement(new String[] { "10" }), 
+                "Missing item should throw exception");
+
+        // Invalid parameters - missing amount
+        assertThrows(IllegalArgumentException.class, 
+                () -> new ItemUseRequirement(new String[] { "DIAMOND_SWORD" }), 
+                "Missing amount should throw exception");
+
+        // Invalid parameters - invalid item material
+        assertThrows(IllegalArgumentException.class, 
+                () -> new ItemUseRequirement(new String[] { "INVALID_MATERIAL", "10" }), 
+                "Invalid item material should throw exception");
+
+        // Invalid parameters - non-item material
+        assertThrows(IllegalArgumentException.class, 
+                () -> new ItemUseRequirement(new String[] { "GRASS_BLOCK", "10" }),
+                "Non-item material should throw exception");
+
+        // Invalid parameters - non-numeric amount
+        assertThrows(IllegalArgumentException.class, 
+                () -> new ItemUseRequirement(new String[] { "DIAMOND_SWORD", "abc" }), 
+                "Non-numeric amount should throw exception");
+
+        // Invalid parameters - too many items
+        String[] tooManyItems = new String[] { 
+            "DIAMOND_SWORD", "IRON_SWORD", "GOLDEN_SWORD", "STONE_SWORD", "WOODEN_SWORD", 
+            "BOW", "CROSSBOW", "TRIDENT", "SHIELD", "FISHING_ROD", "10" 
+        };
+        assertThrows(IllegalArgumentException.class, 
+                () -> new ItemUseRequirement(tooManyItems), 
+                "Too many items should throw exception");
+    }
+
+    @Test
+    @DisplayName("Item Use requirement should check item use statistics correctly")
+    void shouldCheckItemUseStatisticsCorrectly() {
+        // Setup mock statistics
+        when(mockPlayerEntity.getStatistic(eq(Statistic.USE_ITEM), eq(Material.DIAMOND_SWORD))).thenReturn(20);
+        when(mockPlayerEntity.getStatistic(eq(Statistic.USE_ITEM), eq(Material.BOW))).thenReturn(10);
+        when(mockPlayerEntity.getStatistic(eq(Statistic.USE_ITEM), eq(Material.GOLDEN_APPLE))).thenReturn(0);
+
+        // Single item, requirement met
+        ItemUseRequirement singleItemMet = new ItemUseRequirement(new String[] { "DIAMOND_SWORD", "10" });
+        assertTrue(singleItemMet.meetsRequirement(mockPlayer), 
+                "Player with 20 DIAMOND_SWORD uses should meet requirement of 10");
+
+        // Single item, requirement exactly met
+        ItemUseRequirement singleItemExact = new ItemUseRequirement(new String[] { "DIAMOND_SWORD", "20" });
+        assertTrue(singleItemExact.meetsRequirement(mockPlayer), 
+                "Player with 20 DIAMOND_SWORD uses should meet requirement of 20");
+
+        // Single item, requirement not met
+        ItemUseRequirement singleItemNotMet = new ItemUseRequirement(new String[] { "DIAMOND_SWORD", "30" });
+        assertFalse(singleItemNotMet.meetsRequirement(mockPlayer), 
+                "Player with 20 DIAMOND_SWORD uses should not meet requirement of 30");
+
+        // Multiple items, requirement met
+        ItemUseRequirement multipleItemsMet = new ItemUseRequirement(new String[] { "DIAMOND_SWORD", "BOW", "15" });
+        assertTrue(multipleItemsMet.meetsRequirement(mockPlayer), 
+                "Player with 20 DIAMOND_SWORD and 10 BOW uses (30 total) should meet requirement of 15");
+
+        // Multiple items, requirement not met
+        ItemUseRequirement multipleItemsNotMet = new ItemUseRequirement(new String[] { "DIAMOND_SWORD", "BOW", "35" });
+        assertFalse(multipleItemsNotMet.meetsRequirement(mockPlayer), 
+                "Player with 20 DIAMOND_SWORD and 10 BOW uses (30 total) should not meet requirement of 35");
+
+        // Item with zero uses, requirement not met
+        ItemUseRequirement zeroUsesMet = new ItemUseRequirement(new String[] { "GOLDEN_APPLE", "5" });
+        assertFalse(zeroUsesMet.meetsRequirement(mockPlayer), 
+                "Player with 0 GOLDEN_APPLE uses should not meet requirement of 5");
     }
 }

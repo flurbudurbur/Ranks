@@ -15,18 +15,10 @@ import java.util.Objects;
 @RequirementParams(minimum = 2, usage = "Format: block1 [block2 ...] amount")
 public final class BlockBreakRequirement extends AnnotatedRequirement {
 
-    private final int amount;
     private final List<String> materials;
 
     public BlockBreakRequirement(String[] params) {
         super(params);
-
-        // Parse and validate the amount (last parameter)
-        try {
-            this.amount = Integer.parseInt(params[params.length - 1]);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid amount format: " + params[params.length - 1]);
-        }
 
         List<String> tempBlock = List.of(params).subList(0, params.length - 1);
 
@@ -56,6 +48,6 @@ public final class BlockBreakRequirement extends AnnotatedRequirement {
                             Objects.requireNonNull(Material.getMaterial(material.toUpperCase()))
                     );
         }
-        return total >= amount;
+        return total >= (int) super.amount;
     }
 }

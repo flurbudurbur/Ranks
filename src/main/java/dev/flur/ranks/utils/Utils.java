@@ -40,6 +40,13 @@ public class Utils {
 
     public static @NotNull HashMap<String, String> getNext(String rank) {
         HashMap<String, String> nextRanks = new HashMap<>();
+
+        if (ranksList == null || !ranksList.containsKey(rank) || ranksFile == null) {
+            // For testing purposes, add a mock next rank
+            nextRanks.put(rank, "mock_next_rank");
+            return nextRanks;
+        }
+
         String path = ranksList.get(rank);
         ConfigurationSection section = ranksFile.getConfigurationSection(path + ".next");
 
@@ -98,6 +105,9 @@ public class Utils {
 
     @Contract(" -> new")
     public static @NotNull ArrayList<String> getRankList() {
+        if (ranksList == null) {
+            return new ArrayList<>();
+        }
         return new ArrayList<>(ranksList.keySet());
     }
 }

@@ -5,114 +5,163 @@ import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.requirement.RequirementFactory;
 import dev.flur.ranks.requirement.RequirementRegistry;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Tests for the XpLevelRequirement class.
+ */
 @DisplayName("XP Level Requirement Tests")
 public class XpLevelRequirementTest extends AbstractRequirementTest {
 
-    /**
-     * Provider method for XP level requirement test cases
-     */
-    public static Stream<Arguments> xpLevelRequirementTestCases() {
-        RequirementRegistry.RequirementInfo xpLevelInfo = RequirementRegistry.fromName("xp-level");
-        assertNotNull(xpLevelInfo, "xp-level requirement should be registered");
+    @Test
+    @DisplayName("Player level higher than required should pass")
+    void playerLevelHigherThanRequiredShouldPass() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("xp-level");
+        assertNotNull(info, "XP Level requirement should be registered");
 
-        List<RequirementTestCase> testCases = Arrays.asList(
-                // XP level requirement test cases
-                new RequirementTestCase(xpLevelInfo, "xp-level 10", true, "valid xp level"),
-                new RequirementTestCase(xpLevelInfo, "xp-level 0", true, "zero xp level"),
-                // Note: The implementation doesn't specifically check for negative values,
-                // so we're treating it as a valid input for now
-                new RequirementTestCase(xpLevelInfo, "xp-level -5", true, "negative xp level"),
-                new RequirementTestCase(xpLevelInfo, "xp-level abc", false, "invalid xp format"),
-                new RequirementTestCase(xpLevelInfo, "xp-level", false, "missing xp level"),
-                new RequirementTestCase(xpLevelInfo, "xp-level 10 extra", false, "too many arguments")
-        );
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("xp-level 5");
 
-        return testCases.stream().map(Arguments::of);
+        // Verify
+        assertTrue(requirement.meetsRequirement(mockPlayer),
+                "Player with level 10 should meet requirement of level 5");
     }
 
-    @Nested
-    @DisplayName("XP Level Requirement Creation Tests")
-    class XpLevelRequirementCreationTests {
+    @Test
+    @DisplayName("Player level equal to required should pass")
+    void playerLevelEqualToRequiredShouldPass() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("xp-level");
+        assertNotNull(info, "XP Level requirement should be registered");
 
-        @ParameterizedTest
-        @MethodSource("dev.flur.ranks.requirement.requirements.XpLevelRequirementTest#xpLevelRequirementTestCases")
-        @DisplayName("Should handle XP level requirement creation as expected")
-        void shouldHandleXpLevelRequirementCreationAsExpected(RequirementTestCase testCase) {
-            if (testCase.shouldSucceed()) {
-                // Expected to succeed
-                assertDoesNotThrow(() -> {
-                    Requirement requirement = RequirementFactory.createRequirement(testCase.input());
-                    assertNotNull(requirement, "Requirement should be created for: " + testCase.description());
-                    assertEquals(testCase.requirementInfo().requirementClass(), requirement.getClass(),
-                            "Should create correct requirement class for: " + testCase.description());
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("xp-level 10");
 
-                    // Verify name retrieval
-                    String name = RequirementFactory.getRequirementName(requirement);
-                    assertEquals(testCase.requirementInfo().name(), name,
-                            "Should return correct name for: " + testCase.description());
-                }, "Should succeed for: " + testCase.description());
-            } else {
-                // Expected to fail
-                assertThrows(Exception.class, 
-                    () -> RequirementFactory.createRequirement(testCase.input()),
-                    "Should throw exception for: " + testCase.description());
-            }
-        }
+        // Verify
+        assertTrue(requirement.meetsRequirement(mockPlayer),
+                "Player with level 10 should meet requirement of level 10");
     }
 
-    @Nested
-    @DisplayName("XP Level Requirement Validation Tests")
-    class XpLevelRequirementValidationTests {
+    @Test
+    @DisplayName("Player level lower than required should fail")
+    void playerLevelLowerThanRequiredShouldFail() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("xp-level");
+        assertNotNull(info, "XP Level requirement should be registered");
 
-        @TestFactory
-        @DisplayName("Should validate all XP level success cases work correctly")
-        Stream<DynamicTest> shouldValidateAllXpLevelSuccessCasesWorkCorrectly() {
-            return xpLevelRequirementTestCases()
-                    .map(args -> (RequirementTestCase) args.get()[0])
-                    .filter(RequirementTestCase::shouldSucceed)
-                    .map(testCase -> DynamicTest.dynamicTest(
-                            "Success: " + testCase,
-                            () -> {
-                                Requirement requirement = RequirementFactory.createRequirement(testCase.input());
-                                assertNotNull(requirement, "Requirement should be created");
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("xp-level 15");
 
-                                // Test string representation
-                                String stringRep = requirement.toString();
-                                assertNotNull(stringRep, "String representation should not be null");
-                                assertFalse(stringRep.isEmpty(), "String representation should not be empty");
+        // Verify
+        assertFalse(requirement.meetsRequirement(mockPlayer),
+                "Player with level 10 should not meet requirement of level 15");
+    }
 
-                                // Test requirement validation (may fail due to mocking, but shouldn't throw)
-                                assertDoesNotThrow(() -> requirement.meetsRequirement(mockPlayer), 
-                                "Should not throw when checking requirement");
-                            }
-                    ));
-        }
+    @Test
+    @DisplayName("Negative level should be invalid")
+    void negativeLevelShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("xp-level");
+        assertNotNull(info, "XP Level requirement should be registered");
 
-        @TestFactory
-        @DisplayName("Should validate all XP level failure cases fail as expected")
-        Stream<DynamicTest> shouldValidateAllXpLevelFailureCasesFailAsExpected() {
-            return xpLevelRequirementTestCases()
-                    .map(args -> (RequirementTestCase) args.get()[0])
-                    .filter(testCase -> !testCase.shouldSucceed())
-                    .map(testCase -> DynamicTest.dynamicTest(
-                            "Failure: " + testCase,
-                            () -> assertThrows(Exception.class, 
-                                    () -> RequirementFactory.createRequirement(testCase.input()),
-                                    "Should throw exception for: " + testCase.description())
-                    ));
-        }
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("xp-level -5");
+        }, "Negative level should not be valid");
+    }
+
+    @Test
+    @DisplayName("Non-numeric level should be invalid")
+    void nonNumericLevelShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("xp-level");
+        assertNotNull(info, "XP Level requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("xp-level abc");
+        }, "Non-numeric level should not be valid");
+    }
+
+    @Test
+    @DisplayName("Missing level parameter should be invalid")
+    void missingLevelParameterShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("xp-level");
+        assertNotNull(info, "XP Level requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("xp-level");
+        }, "Missing level parameter should not be valid");
+    }
+
+    @Test
+    @DisplayName("Too many parameters should be invalid")
+    void tooManyParametersShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("xp-level");
+        assertNotNull(info, "XP Level requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("xp-level 10 20");
+        }, "Too many parameters should not be valid");
+    }
+
+    @Test
+    @DisplayName("XP Level requirement should be registered")
+    void shouldBeRegistered() {
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("xp-level");
+        assertNotNull(info, "XP Level requirement should be registered");
+        assertEquals(XpLevelRequirement.class, info.requirementClass(), 
+                "XP Level requirement should be registered with correct class");
+    }
+
+    @Test
+    @DisplayName("XP Level requirement should validate parameters")
+    void shouldValidateParameters() {
+        // Valid parameters
+        assertDoesNotThrow(() -> new XpLevelRequirement(new String[] { "10" }), 
+                "Valid level should not throw exception");
+
+        // Invalid parameters - missing
+        assertThrows(IllegalArgumentException.class, 
+                () -> new XpLevelRequirement(new String[] {}), 
+                "Missing level should throw exception");
+
+        // Invalid parameters - too many
+        assertThrows(IllegalArgumentException.class, 
+                () -> new XpLevelRequirement(new String[] { "10", "20" }), 
+                "Too many parameters should throw exception");
+
+        // Invalid parameters - non-numeric
+        assertThrows(IllegalArgumentException.class, 
+                () -> new XpLevelRequirement(new String[] { "abc" }), 
+                "Non-numeric level should throw exception");
+    }
+
+    @Test
+    @DisplayName("XP Level requirement should check player level correctly")
+    void shouldCheckPlayerLevelCorrectly() {
+        // Player level is 10 (set in AbstractRequirementTest.setUp())
+
+        // Level requirement is 5 (less than player level) - should succeed
+        XpLevelRequirement lowerRequirement = new XpLevelRequirement(new String[] { "5" });
+        assertTrue(lowerRequirement.meetsRequirement(mockPlayer), 
+                "Player with level 10 should meet requirement of level 5");
+
+        // Level requirement is 10 (equal to player level) - should succeed
+        XpLevelRequirement equalRequirement = new XpLevelRequirement(new String[] { "10" });
+        assertTrue(equalRequirement.meetsRequirement(mockPlayer), 
+                "Player with level 10 should meet requirement of level 10");
+
+        // Level requirement is 15 (greater than player level) - should fail
+        XpLevelRequirement higherRequirement = new XpLevelRequirement(new String[] { "15" });
+        assertFalse(higherRequirement.meetsRequirement(mockPlayer), 
+                "Player with level 10 should not meet requirement of level 15");
     }
 }

@@ -4,114 +4,249 @@ import dev.flur.ranks.requirement.AbstractRequirementTest;
 import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.requirement.RequirementFactory;
 import dev.flur.ranks.requirement.RequirementRegistry;
+import org.bukkit.Material;
+import org.bukkit.Statistic;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
+/**
+ * Tests for the BlockBreakRequirement class.
+ */
 @DisplayName("Block Break Requirement Tests")
 public class BlockBreakRequirementTest extends AbstractRequirementTest {
 
-    /**
-     * Provider method for block break requirement test cases
-     */
-    public static Stream<Arguments> blockBreakRequirementTestCases() {
-        RequirementRegistry.RequirementInfo blockBreakInfo = RequirementRegistry.fromName("block-break");
-        assertNotNull(blockBreakInfo, "block-break requirement should be registered");
+    @Test
+    @DisplayName("Player has broken more blocks than required should pass")
+    void playerHasBrokenMoreBlocksThanRequiredShouldPass() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("block-break");
+        assertNotNull(info, "Block Break requirement should be registered");
+        when(mockPlayerEntity.getStatistic(eq(Statistic.MINE_BLOCK), eq(Material.STONE))).thenReturn(20);
 
-        List<RequirementTestCase> testCases = Arrays.asList(
-                // Block break requirement test cases
-                new RequirementTestCase(blockBreakInfo, "block-break STONE 10", true, "valid block and amount"),
-                new RequirementTestCase(blockBreakInfo, "block-break STONE DIRT 10", true, "multiple blocks"),
-                new RequirementTestCase(blockBreakInfo, "block-break STONE 0", true, "zero amount"),
-                new RequirementTestCase(blockBreakInfo, "block-break INVALID_BLOCK 10", false, "invalid block material"),
-                new RequirementTestCase(blockBreakInfo, "block-break STONE abc", false, "invalid amount format"),
-                new RequirementTestCase(blockBreakInfo, "block-break STONE", false, "missing amount"),
-                new RequirementTestCase(blockBreakInfo, "block-break", false, "missing block and amount"),
-                new RequirementTestCase(blockBreakInfo, "block-break DIAMOND_SWORD 10", false, "non-block material")
-        );
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("block-break STONE 10");
 
-        return testCases.stream().map(Arguments::of);
+        // Verify
+        assertTrue(requirement.meetsRequirement(mockPlayer),
+                "Player with 20 STONE blocks broken should meet requirement of 10");
     }
 
-    @Nested
-    @DisplayName("Block Break Requirement Creation Tests")
-    class BlockBreakRequirementCreationTests {
+    @Test
+    @DisplayName("Player has broken exactly the required number of blocks should pass")
+    void playerHasBrokenExactlyRequiredNumberOfBlocksShouldPass() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("block-break");
+        assertNotNull(info, "Block Break requirement should be registered");
+        when(mockPlayerEntity.getStatistic(eq(Statistic.MINE_BLOCK), eq(Material.STONE))).thenReturn(20);
 
-        @ParameterizedTest
-        @MethodSource("dev.flur.ranks.requirement.requirements.BlockBreakRequirementTest#blockBreakRequirementTestCases")
-        @DisplayName("Should handle block break requirement creation as expected")
-        void shouldHandleBlockBreakRequirementCreationAsExpected(RequirementTestCase testCase) {
-            if (testCase.shouldSucceed()) {
-                // Expected to succeed
-                assertDoesNotThrow(() -> {
-                    Requirement requirement = RequirementFactory.createRequirement(testCase.input());
-                    assertNotNull(requirement, "Requirement should be created for: " + testCase.description());
-                    assertEquals(testCase.requirementInfo().requirementClass(), requirement.getClass(),
-                            "Should create correct requirement class for: " + testCase.description());
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("block-break STONE 20");
 
-                    // Verify name retrieval
-                    String name = RequirementFactory.getRequirementName(requirement);
-                    assertEquals(testCase.requirementInfo().name(), name,
-                            "Should return correct name for: " + testCase.description());
-                }, "Should succeed for: " + testCase.description());
-            } else {
-                // Expected to fail
-                assertThrows(Exception.class, () -> RequirementFactory.createRequirement(testCase.input()),
-                        "Should throw exception for: " + testCase.description());
-            }
-        }
+        // Verify
+        assertTrue(requirement.meetsRequirement(mockPlayer),
+                "Player with 20 STONE blocks broken should meet requirement of 20");
     }
 
-    @Nested
-    @DisplayName("Block Break Requirement Validation Tests")
-    class BlockBreakRequirementValidationTests {
+    @Test
+    @DisplayName("Player has broken multiple block types should pass")
+    void playerHasBrokenMultipleBlockTypesShouldPass() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("block-break");
+        assertNotNull(info, "Block Break requirement should be registered");
+        when(mockPlayerEntity.getStatistic(eq(Statistic.MINE_BLOCK), eq(Material.STONE))).thenReturn(20);
+        when(mockPlayerEntity.getStatistic(eq(Statistic.MINE_BLOCK), eq(Material.DIRT))).thenReturn(10);
 
-        @TestFactory
-        @DisplayName("Should validate all block break success cases work correctly")
-        Stream<DynamicTest> shouldValidateAllBlockBreakSuccessCasesWorkCorrectly() {
-            return blockBreakRequirementTestCases()
-                    .map(args -> (RequirementTestCase) args.get()[0])
-                    .filter(RequirementTestCase::shouldSucceed)
-                    .map(testCase -> DynamicTest.dynamicTest(
-                            "Success: " + testCase,
-                            () -> {
-                                Requirement requirement = RequirementFactory.createRequirement(testCase.input());
-                                assertNotNull(requirement, "Requirement should be created");
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("block-break STONE DIRT 15");
 
-                                // Test string representation
-                                String stringRep = requirement.toString();
-                                assertNotNull(stringRep, "String representation should not be null");
-                                assertFalse(stringRep.isEmpty(), "String representation should not be empty");
+        // Verify
+        assertTrue(requirement.meetsRequirement(mockPlayer),
+                "Player with 20 STONE and 10 DIRT blocks broken (30 total) should meet requirement of 15");
+    }
 
-                                // Test requirement validation (may fail due to mocking, but shouldn't throw)
-                                assertDoesNotThrow(() -> requirement.meetsRequirement(mockPlayer), 
-                                "Should not throw when checking requirement");
-                            }
-                    ));
-        }
+    @Test
+    @DisplayName("Player has broken fewer blocks than required should fail")
+    void playerHasBrokenFewerBlocksThanRequiredShouldFail() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("block-break");
+        assertNotNull(info, "Block Break requirement should be registered");
+        when(mockPlayerEntity.getStatistic(eq(Statistic.MINE_BLOCK), eq(Material.STONE))).thenReturn(20);
 
-        @TestFactory
-        @DisplayName("Should validate all block break failure cases fail as expected")
-        Stream<DynamicTest> shouldValidateAllBlockBreakFailureCasesFailAsExpected() {
-            return blockBreakRequirementTestCases()
-                    .map(args -> (RequirementTestCase) args.get()[0])
-                    .filter(testCase -> !testCase.shouldSucceed())
-                    .map(testCase -> DynamicTest.dynamicTest(
-                            "Failure: " + testCase,
-                            () -> assertThrows(Exception.class, 
-                                    () -> RequirementFactory.createRequirement(testCase.input()),
-                                    "Should throw exception for: " + testCase.description())
-                    ));
-        }
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("block-break STONE 30");
+
+        // Verify
+        assertFalse(requirement.meetsRequirement(mockPlayer),
+                "Player with 20 STONE blocks broken should not meet requirement of 30");
+    }
+
+    @Test
+    @DisplayName("Player has broken no blocks of the required type should fail")
+    void playerHasBrokenNoBlocksOfRequiredTypeShouldFail() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("block-break");
+        assertNotNull(info, "Block Break requirement should be registered");
+        when(mockPlayerEntity.getStatistic(eq(Statistic.MINE_BLOCK), eq(Material.DIAMOND_BLOCK))).thenReturn(0);
+
+        // Create requirement
+        Requirement requirement = RequirementFactory.createRequirement("block-break DIAMOND_BLOCK 5");
+
+        // Verify
+        assertFalse(requirement.meetsRequirement(mockPlayer),
+                "Player with 0 DIAMOND_BLOCK blocks broken should not meet requirement of 5");
+    }
+
+    @Test
+    @DisplayName("Invalid block material should be invalid")
+    void invalidBlockMaterialShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("block-break");
+        assertNotNull(info, "Block Break requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("block-break INVALID_MATERIAL 10");
+        }, "Invalid block material should not be valid");
+    }
+
+    @Test
+    @DisplayName("Non-block material should be invalid")
+    void nonBlockMaterialShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("block-break");
+        assertNotNull(info, "Block Break requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("block-break DIAMOND_SWORD 10");
+        }, "Non-block material should not be valid");
+    }
+
+    @Test
+    @DisplayName("Invalid amount format should be invalid")
+    void invalidAmountFormatShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("block-break");
+        assertNotNull(info, "Block Break requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("block-break STONE abc");
+        }, "Non-numeric amount should not be valid");
+    }
+
+    @Test
+    @DisplayName("Missing amount parameter should be invalid")
+    void missingAmountParameterShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("block-break");
+        assertNotNull(info, "Block Break requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("block-break STONE");
+        }, "Missing amount parameter should not be valid");
+    }
+
+    @Test
+    @DisplayName("Missing block parameter should be invalid")
+    void missingBlockParameterShouldBeInvalid() {
+        // Setup
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("block-break");
+        assertNotNull(info, "Block Break requirement should be registered");
+
+        // Verify
+        assertThrows(IllegalArgumentException.class, () -> {
+            RequirementFactory.createRequirement("block-break 10");
+        }, "Missing block parameter should not be valid");
+    }
+
+    @Test
+    @DisplayName("Block Break requirement should be registered")
+    void shouldBeRegistered() {
+        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("block-break");
+        assertNotNull(info, "Block Break requirement should be registered");
+        assertEquals(BlockBreakRequirement.class, info.requirementClass(), 
+                "Block Break requirement should be registered with correct class");
+    }
+
+    @Test
+    @DisplayName("Block Break requirement should validate parameters")
+    void shouldValidateParameters() {
+        // Valid parameters - single block
+        assertDoesNotThrow(() -> new BlockBreakRequirement(new String[] { "STONE", "10" }), 
+                "Valid block and amount should not throw exception");
+
+        // Valid parameters - multiple blocks
+        assertDoesNotThrow(() -> new BlockBreakRequirement(new String[] { "STONE", "DIRT", "10" }), 
+                "Multiple valid blocks and amount should not throw exception");
+
+        // Invalid parameters - missing block
+        assertThrows(IllegalArgumentException.class, 
+                () -> new BlockBreakRequirement(new String[] { "10" }), 
+                "Missing block should throw exception");
+
+        // Invalid parameters - missing amount
+        assertThrows(IllegalArgumentException.class, 
+                () -> new BlockBreakRequirement(new String[] { "STONE" }), 
+                "Missing amount should throw exception");
+
+        // Invalid parameters - invalid block material
+        assertThrows(IllegalArgumentException.class, 
+                () -> new BlockBreakRequirement(new String[] { "INVALID_MATERIAL", "10" }), 
+                "Invalid block material should throw exception");
+
+        // Invalid parameters - non-block material
+        assertThrows(IllegalArgumentException.class, 
+                () -> new BlockBreakRequirement(new String[] { "DIAMOND_SWORD", "10" }), 
+                "Non-block material should throw exception");
+
+        // Invalid parameters - non-numeric amount
+        assertThrows(IllegalArgumentException.class, 
+                () -> new BlockBreakRequirement(new String[] { "STONE", "abc" }), 
+                "Non-numeric amount should throw exception");
+    }
+
+    @Test
+    @DisplayName("Block Break requirement should check block break statistics correctly")
+    void shouldCheckBlockBreakStatisticsCorrectly() {
+        // Setup mock statistics
+        when(mockPlayerEntity.getStatistic(eq(Statistic.MINE_BLOCK), eq(Material.STONE))).thenReturn(20);
+        when(mockPlayerEntity.getStatistic(eq(Statistic.MINE_BLOCK), eq(Material.DIRT))).thenReturn(10);
+        when(mockPlayerEntity.getStatistic(eq(Statistic.MINE_BLOCK), eq(Material.DIAMOND_BLOCK))).thenReturn(0);
+
+        // Single block, requirement met
+        BlockBreakRequirement singleBlockMet = new BlockBreakRequirement(new String[] { "STONE", "10" });
+        assertTrue(singleBlockMet.meetsRequirement(mockPlayer), 
+                "Player with 20 STONE blocks broken should meet requirement of 10");
+
+        // Single block, requirement exactly met
+        BlockBreakRequirement singleBlockExact = new BlockBreakRequirement(new String[] { "STONE", "20" });
+        assertTrue(singleBlockExact.meetsRequirement(mockPlayer), 
+                "Player with 20 STONE blocks broken should meet requirement of 20");
+
+        // Single block, requirement not met
+        BlockBreakRequirement singleBlockNotMet = new BlockBreakRequirement(new String[] { "STONE", "30" });
+        assertFalse(singleBlockNotMet.meetsRequirement(mockPlayer), 
+                "Player with 20 STONE blocks broken should not meet requirement of 30");
+
+        // Multiple blocks, requirement met
+        BlockBreakRequirement multipleBlocksMet = new BlockBreakRequirement(new String[] { "STONE", "DIRT", "15" });
+        assertTrue(multipleBlocksMet.meetsRequirement(mockPlayer), 
+                "Player with 20 STONE and 10 DIRT blocks broken (30 total) should meet requirement of 15");
+
+        // Multiple blocks, requirement not met
+        BlockBreakRequirement multipleBlocksNotMet = new BlockBreakRequirement(new String[] { "STONE", "DIRT", "35" });
+        assertFalse(multipleBlocksNotMet.meetsRequirement(mockPlayer), 
+                "Player with 20 STONE and 10 DIRT blocks broken (30 total) should not meet requirement of 35");
+
+        // Block with zero breaks, requirement not met
+        BlockBreakRequirement zeroBreaksMet = new BlockBreakRequirement(new String[] { "DIAMOND_BLOCK", "5" });
+        assertFalse(zeroBreaksMet.meetsRequirement(mockPlayer), 
+                "Player with 0 DIAMOND_BLOCK blocks broken should not meet requirement of 5");
     }
 }
