@@ -8,17 +8,17 @@ import net.milkbowl.vault.permission.Permission;
  * This interface facilitates mocking in tests.
  */
 public interface VaultProvider {
-    
+
     /**
      * Get the Economy service.
-     * 
+     *
      * @return the Economy service
      */
     Economy getEconomy();
-    
+
     /**
      * Get the Permission service.
-     * 
+     *
      * @return the Permission service
      */
     Permission getPermissions();

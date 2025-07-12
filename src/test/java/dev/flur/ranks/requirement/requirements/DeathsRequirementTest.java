@@ -1,156 +1,130 @@
 package dev.flur.ranks.requirement.requirements;
 
-import dev.flur.ranks.requirement.AbstractRequirementTest;
-import dev.flur.ranks.requirement.Requirement;
-import dev.flur.ranks.requirement.RequirementFactory;
-import dev.flur.ranks.requirement.RequirementRegistry;
 import org.bukkit.Statistic;
-import org.junit.jupiter.api.DisplayName;
+import org.bukkit.entity.Player;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-/**
- * Tests for the DeathsRequirement class.
- */
-@DisplayName("Deaths Requirement Tests")
-public class DeathsRequirementTest extends AbstractRequirementTest {
+class DeathsRequirementTest {
 
-    @Test
-    @DisplayName("Player has more deaths than required should pass")
-    void playerHasMoreDeathsThanRequiredShouldPass() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("deaths");
-        assertNotNull(info, "Deaths requirement should be registered");
-        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(10);
+    private Player mockPlayer;
 
-        // Create requirement
-        Requirement requirement = RequirementFactory.createRequirement("deaths 5");
-
-        // Verify
-        assertTrue(requirement.meetsRequirement(mockPlayer),
-                "Player with 10 deaths should meet requirement of 5 deaths");
+    @BeforeEach
+    void setUp() {
+        // Create mocks
+        mockPlayer = mock(Player.class);
     }
 
     @Test
-    @DisplayName("Player has exactly the required number of deaths should pass")
-    void playerHasExactlyRequiredNumberOfDeathsShouldPass() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("deaths");
-        assertNotNull(info, "Deaths requirement should be registered");
-        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(10);
+    void testConstructor_ValidAmount() {
+        // Arrange
+        String[] params = {"100"};
+        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(100); // Exact amount
 
-        // Create requirement
-        Requirement requirement = RequirementFactory.createRequirement("deaths 10");
+        // Act
+        DeathsRequirement requirement = new DeathsRequirement(params);
 
-        // Verify
-        assertTrue(requirement.meetsRequirement(mockPlayer),
-                "Player with 10 deaths should meet requirement of 10 deaths");
+        // Assert - Verify indirectly through meetsRequirement
+        assertTrue(requirement.meetsRequirement(mockPlayer));
+        
+        // Also verify with more deaths
+        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(150);
+        assertTrue(requirement.meetsRequirement(mockPlayer));
+        
+        // And verify with fewer deaths
+        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(99);
+        assertFalse(requirement.meetsRequirement(mockPlayer));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-10", "abc", ""})
+    void testConstructor_InvalidAmount(String invalidAmount) {
+        // Arrange
+        String[] params = {invalidAmount};
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> new DeathsRequirement(params));
     }
 
     @Test
-    @DisplayName("Player has fewer deaths than required should fail")
-    void playerHasFewerDeathsThanRequiredShouldFail() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("deaths");
-        assertNotNull(info, "Deaths requirement should be registered");
-        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(10);
+    void testConstructor_TooManyParams() {
+        // Arrange
+        String[] params = {"param1", "100"};
 
-        // Create requirement
-        Requirement requirement = RequirementFactory.createRequirement("deaths 15");
-
-        // Verify
-        assertFalse(requirement.meetsRequirement(mockPlayer),
-                "Player with 10 deaths should not meet requirement of 15 deaths");
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> new DeathsRequirement(params));
     }
 
     @Test
-    @DisplayName("Non-numeric deaths should throw exception")
-    void nonNumericDeathsShouldThrowException() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("deaths");
-        assertNotNull(info, "Deaths requirement should be registered");
+    void testConstructor_TooFewParams() {
+        // Arrange
+        String[] params = {};
 
-        // Verify
-        assertThrows(IllegalArgumentException.class, () -> {
-            RequirementFactory.createRequirement("deaths abc");
-        }, "Non-numeric deaths should throw exception");
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> new DeathsRequirement(params));
     }
 
     @Test
-    @DisplayName("Missing parameter should throw exception")
-    void missingParameterShouldThrowException() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("deaths");
-        assertNotNull(info, "Deaths requirement should be registered");
+    void testMeetsRequirement_EnoughDeaths() {
+        // Arrange
+        String[] params = {"100"};
+        DeathsRequirement requirement = new DeathsRequirement(params);
+        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(150);
 
-        // Verify
-        assertThrows(IllegalArgumentException.class, () -> {
-            RequirementFactory.createRequirement("deaths");
-        }, "Missing deaths parameter should throw exception");
+        // Act
+        boolean result = requirement.meetsRequirement(mockPlayer);
+
+        // Assert
+        assertTrue(result);
+        verify(mockPlayer).getStatistic(Statistic.DEATHS);
     }
 
     @Test
-    @DisplayName("Deaths requirement should be registered")
-    void shouldBeRegistered() {
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("deaths");
-        assertNotNull(info, "Deaths requirement should be registered");
-        assertEquals(DeathsRequirement.class, info.requirementClass(), 
-                "Deaths requirement should be registered with correct class");
+    void testMeetsRequirement_NotEnoughDeaths() {
+        // Arrange
+        String[] params = {"100"};
+        DeathsRequirement requirement = new DeathsRequirement(params);
+        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(50);
+
+        // Act
+        boolean result = requirement.meetsRequirement(mockPlayer);
+
+        // Assert
+        assertFalse(result);
+        verify(mockPlayer).getStatistic(Statistic.DEATHS);
     }
 
     @Test
-    @DisplayName("Deaths requirement should handle parameters correctly")
-    void shouldHandleParametersCorrectly() {
-        // Setup mock statistics to ensure requirement is met
-        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(20);
+    void testMeetsRequirement_ExactAmount() {
+        // Arrange
+        String[] params = {"100"};
+        DeathsRequirement requirement = new DeathsRequirement(params);
+        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(100);
 
-        // Valid parameters
-        DeathsRequirement validRequirement = new DeathsRequirement(new String[] { "10" });
-        assertTrue(validRequirement.meetsRequirement(mockPlayer), 
-                "Valid deaths parameter should be parsed correctly");
+        // Act
+        boolean result = requirement.meetsRequirement(mockPlayer);
 
-        // Invalid parameters - non-numeric
-        assertThrows(IllegalArgumentException.class, 
-                () -> new DeathsRequirement(new String[] { "abc" }), 
-                "Invalid deaths parameter should throw exception");
-
-        // Invalid parameters - missing
-        assertThrows(IllegalArgumentException.class, 
-                () -> new DeathsRequirement(new String[] {}), 
-                "Missing deaths parameter should throw exception");
-
-        // Invalid parameters - negative
-        assertThrows(IllegalArgumentException.class, 
-                () -> new DeathsRequirement(new String[] { "-5" }), 
-                "Negative deaths parameter should throw exception");
+        // Assert
+        assertTrue(result);
+        verify(mockPlayer).getStatistic(Statistic.DEATHS);
     }
 
     @Test
-    @DisplayName("Deaths requirement should check player deaths correctly")
-    void shouldCheckPlayerDeathsCorrectly() {
-        // Setup mock statistics
-        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(10);
+    void testToString() {
+        // Arrange
+        String[] params = {"100"};
+        DeathsRequirement requirement = new DeathsRequirement(params);
 
-        // Deaths requirement is 5 (less than player deaths) - should succeed
-        DeathsRequirement lowerRequirement = new DeathsRequirement(new String[] { "5" });
-        assertTrue(lowerRequirement.meetsRequirement(mockPlayer), 
-                "Player with 10 deaths should meet requirement of 5 deaths");
+        // Act
+        String result = requirement.toString();
 
-        // Deaths requirement is 10 (equal to player deaths) - should succeed
-        DeathsRequirement equalRequirement = new DeathsRequirement(new String[] { "10" });
-        assertTrue(equalRequirement.meetsRequirement(mockPlayer), 
-                "Player with 10 deaths should meet requirement of 10 deaths");
-
-        // Deaths requirement is 15 (greater than player deaths) - should fail
-        DeathsRequirement higherRequirement = new DeathsRequirement(new String[] { "15" });
-        assertFalse(higherRequirement.meetsRequirement(mockPlayer), 
-                "Player with 10 deaths should not meet requirement of 15 deaths");
-
-        // Test with different deaths count
-        when(mockPlayer.getStatistic(Statistic.DEATHS)).thenReturn(20);
-        assertTrue(higherRequirement.meetsRequirement(mockPlayer), 
-                "Player with 20 deaths should meet requirement of 15 deaths");
+        // Assert
+        assertTrue(result.contains("100"));
+        assertTrue(result.contains("deaths"));
     }
 }

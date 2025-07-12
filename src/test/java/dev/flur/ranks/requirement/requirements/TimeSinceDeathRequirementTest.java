@@ -1,292 +1,171 @@
 package dev.flur.ranks.requirement.requirements;
 
-import dev.flur.ranks.requirement.AbstractRequirementTest;
-import dev.flur.ranks.requirement.Requirement;
-import dev.flur.ranks.requirement.RequirementFactory;
-import dev.flur.ranks.requirement.RequirementRegistry;
 import org.bukkit.Statistic;
-import org.junit.jupiter.api.DisplayName;
+import org.bukkit.entity.Player;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-/**
- * Tests for the TimeSinceDeathRequirement class.
- */
-@DisplayName("Time Since Death Requirement Tests")
-public class TimeSinceDeathRequirementTest extends AbstractRequirementTest {
+class TimeSinceDeathRequirementTest {
 
-    @Test
-    @DisplayName("Player alive longer than required should pass")
-    void playerAliveLongerThanRequiredShouldPass() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("time-since-death");
-        assertNotNull(info, "Time Since Death requirement should be registered");
-        when(mockPlayerEntity.getStatistic(Statistic.TIME_SINCE_DEATH)).thenReturn(3600 * 1000);
+    private Player mockPlayer;
 
-        // Create requirement
-        Requirement requirement = RequirementFactory.createRequirement("time-since-death h1");
-
-        // Verify
-        assertTrue(requirement.meetsRequirement(mockPlayer),
-                "Player alive for 3600 seconds should meet requirement of 1 hour");
+    @BeforeEach
+    void setUp() {
+        // Create mocks
+        mockPlayer = mock(Player.class);
+        // Mock the getPlayer() method to return itself
+        when(mockPlayer.getPlayer()).thenReturn(mockPlayer);
     }
 
     @Test
-    @DisplayName("Player alive exactly the required time should pass")
-    void playerAliveExactlyRequiredTimeShouldPass() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("time-since-death");
-        assertNotNull(info, "Time Since Death requirement should be registered");
-        when(mockPlayerEntity.getStatistic(Statistic.TIME_SINCE_DEATH)).thenReturn(3600 * 1000);
+    void testConstructor_ValidFormat() {
+        // Arrange
+        String[] params = {"m60"}; // 60 minutes
 
-        // Create requirement
-        Requirement requirement = RequirementFactory.createRequirement("time-since-death m1");
+        // Act
+        TimeSinceDeathRequirement requirement = new TimeSinceDeathRequirement(params);
 
-        // Verify
-        assertTrue(requirement.meetsRequirement(mockPlayer),
-                "Player alive for 3600 seconds should meet requirement of 3600 seconds");
+        // Assert - We'll verify indirectly through meetsRequirement in other tests
+        assertNotNull(requirement);
     }
 
     @Test
-    @DisplayName("Player alive longer than required with multiple units should pass")
-    void playerAliveLongerThanRequiredWithMultipleUnitsShouldPass() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("time-since-death");
-        assertNotNull(info, "Time Since Death requirement should be registered");
-        when(mockPlayerEntity.getStatistic(Statistic.TIME_SINCE_DEATH)).thenReturn(3600 * 1000);
+    void testConstructor_ComplexFormat() {
+        // Arrange
+        String[] params = {"M1w2d3h4m5s6"}; // Complex format with all units
 
-        // Create requirement
-        Requirement requirement = RequirementFactory.createRequirement("time-since-death m30 s30");
+        // Act
+        TimeSinceDeathRequirement requirement = new TimeSinceDeathRequirement(params);
 
-        // Verify
-        assertTrue(requirement.meetsRequirement(mockPlayer),
-                "Player alive for 3600 seconds should meet requirement of 30 minutes and 30 seconds");
+        // Assert
+        assertNotNull(requirement);
     }
 
     @Test
-    @DisplayName("Player alive less than required should fail")
-    void playerAliveLessThanRequiredShouldFail() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("time-since-death");
-        assertNotNull(info, "Time Since Death requirement should be registered");
-        when(mockPlayerEntity.getStatistic(Statistic.TIME_SINCE_DEATH)).thenReturn(3600 * 1000);
+    void testConstructor_InvalidFormat() {
+        // Arrange
+        String[] params = {"60"}; // Just a number, no units
 
-        // Create requirement
-        Requirement requirement = RequirementFactory.createRequirement("time-since-death h2");
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> new TimeSinceDeathRequirement(params));
+    }
 
-        // Verify
-        assertFalse(requirement.meetsRequirement(mockPlayer),
-                "Player alive for 3600 seconds should not meet requirement of 2 hours");
+    @ParameterizedTest
+    @ValueSource(strings = {"m-10", "invalid", ""})
+    void testConstructor_InvalidValues(String invalidValue) {
+        // Arrange
+        String[] params = {invalidValue};
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> new TimeSinceDeathRequirement(params));
     }
 
     @Test
-    @DisplayName("Invalid format with no units should be invalid")
-    void invalidFormatWithNoUnitsShouldBeInvalid() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("time-since-death");
-        assertNotNull(info, "Time Since Death requirement should be registered");
+    void testConstructor_TooManyParams() {
+        // Arrange
+        String[] params = {"m60", "extra"};
 
-        // Verify
-        assertThrows(IllegalArgumentException.class, () -> {
-            RequirementFactory.createRequirement("time-since-death 3600");
-        }, "Invalid format (no units) should not be valid");
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> new TimeSinceDeathRequirement(params));
     }
 
     @Test
-    @DisplayName("Invalid format with invalid unit should be invalid")
-    void invalidFormatWithInvalidUnitShouldBeInvalid() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("time-since-death");
-        assertNotNull(info, "Time Since Death requirement should be registered");
+    void testConstructor_TooFewParams() {
+        // Arrange
+        String[] params = {};
 
-        // Verify
-        assertThrows(IllegalArgumentException.class, () -> {
-            RequirementFactory.createRequirement("time-since-death x3600");
-        }, "Invalid format (invalid unit) should not be valid");
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> new TimeSinceDeathRequirement(params));
     }
 
     @Test
-    @DisplayName("Invalid format with negative value should be invalid")
-    void invalidFormatWithNegativeValueShouldBeInvalid() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("time-since-death");
-        assertNotNull(info, "Time Since Death requirement should be registered");
+    void testMeetsRequirement_EnoughTimeSinceDeath() {
+        // Arrange
+        String[] params = {"m60"}; // 60 minutes = 72000 ticks (60 * 60 * 20)
+        TimeSinceDeathRequirement requirement = new TimeSinceDeathRequirement(params);
 
-        // Verify
-        assertThrows(IllegalArgumentException.class, () -> {
-            RequirementFactory.createRequirement("time-since-death h-1");
-        }, "Invalid format (negative value) should not be valid");
+        // Mock the player's time since death to be 90 minutes (108000 ticks)
+        when(mockPlayer.getStatistic(Statistic.TIME_SINCE_DEATH)).thenReturn(108000);
+
+        // Act
+        boolean result = requirement.meetsRequirement(mockPlayer);
+
+        // Assert
+        assertTrue(result);
+        verify(mockPlayer).getStatistic(Statistic.TIME_SINCE_DEATH);
     }
 
     @Test
-    @DisplayName("Missing parameter should be invalid")
-    void missingParameterShouldBeInvalid() {
-        // Setup
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("time-since-death");
-        assertNotNull(info, "Time Since Death requirement should be registered");
+    void testMeetsRequirement_NotEnoughTimeSinceDeath() {
+        // Arrange
+        String[] params = {"m60"}; // 60 minutes = 72000 ticks
+        TimeSinceDeathRequirement requirement = new TimeSinceDeathRequirement(params);
 
-        // Verify
-        assertThrows(IllegalArgumentException.class, () -> {
-            RequirementFactory.createRequirement("time-since-death");
-        }, "Missing parameter should not be valid");
+        // Mock the player's time since death to be 30 minutes (36000 ticks)
+        when(mockPlayer.getStatistic(Statistic.TIME_SINCE_DEATH)).thenReturn(36000);
+
+        // Act
+        boolean result = requirement.meetsRequirement(mockPlayer);
+
+        // Assert
+        assertFalse(result);
+        verify(mockPlayer).getStatistic(Statistic.TIME_SINCE_DEATH);
     }
 
     @Test
-    @DisplayName("Time Since Death requirement should be registered")
-    void shouldBeRegistered() {
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName("time-since-death");
-        assertNotNull(info, "Time Since Death requirement should be registered");
-        assertEquals(TimeSinceDeathRequirement.class, info.requirementClass(), 
-                "Time Since Death requirement should be registered with correct class");
+    void testMeetsRequirement_ExactAmount() {
+        // Arrange
+        String[] params = {"m60"}; // 60 minutes = 72000 ticks
+        TimeSinceDeathRequirement requirement = new TimeSinceDeathRequirement(params);
+
+        // Mock the player's time since death to be exactly 60 minutes (72000 ticks)
+        when(mockPlayer.getStatistic(Statistic.TIME_SINCE_DEATH)).thenReturn(72000);
+
+        // Act
+        boolean result = requirement.meetsRequirement(mockPlayer);
+
+        // Assert
+        assertTrue(result);
+        verify(mockPlayer).getStatistic(Statistic.TIME_SINCE_DEATH);
     }
 
     @Test
-    @DisplayName("Time Since Death requirement should validate parameters")
-    void shouldValidateParameters() {
-        // Valid parameters - single unit
-        assertDoesNotThrow(() -> new TimeSinceDeathRequirement(new String[] { "h1" }), 
-                "Valid duration with single unit should not throw exception");
+    void testMeetsRequirement_VeryLargeRequirement() {
+        // Arrange - Create a requirement that exceeds Integer.MAX_VALUE
+        String[] params = {"M12"}; // 12 months, which should be a very large number of ticks
+        TimeSinceDeathRequirement requirement = new TimeSinceDeathRequirement(params);
 
-        // Valid parameters - multiple units
-        assertDoesNotThrow(() -> new TimeSinceDeathRequirement(new String[] { "h1 m30 s30" }), 
-                "Valid duration with multiple units should not throw exception");
+        // Mock the player to have less time since death than required
+        // Use a value smaller than 12 months worth of ticks
+        when(mockPlayer.getStatistic(Statistic.TIME_SINCE_DEATH)).thenReturn(300_000_000); // ~5 months worth
 
-        // Valid parameters - all units
-        assertDoesNotThrow(() -> new TimeSinceDeathRequirement(new String[] { "M1 w1 d1 h1 m1 s1" }), 
-                "Valid duration with all units should not throw exception");
 
-        // Invalid parameters - missing
-        assertThrows(IllegalArgumentException.class, 
-                () -> new TimeSinceDeathRequirement(new String[] {}), 
-                "Missing duration should throw exception");
+        // Act
+        boolean result = requirement.meetsRequirement(mockPlayer);
 
-        // Invalid parameters - invalid format (no units)
-        assertThrows(IllegalArgumentException.class, 
-                () -> new TimeSinceDeathRequirement(new String[] { "3600" }), 
-                "Invalid format (no units) should throw exception");
+        // Assert - The implementation should handle this case
+        assertFalse(result);
 
-        // Invalid parameters - invalid format (invalid unit)
-        assertThrows(IllegalArgumentException.class, 
-                () -> new TimeSinceDeathRequirement(new String[] { "x3600" }), 
-                "Invalid format (invalid unit) should throw exception");
-
-        // Invalid parameters - invalid format (out of range)
-        assertThrows(IllegalArgumentException.class, 
-                () -> new TimeSinceDeathRequirement(new String[] { "w4" }), 
-                "Invalid format (week out of range) should throw exception");
-
-        // Invalid parameters - invalid format (out of range)
-        assertThrows(IllegalArgumentException.class, 
-                () -> new TimeSinceDeathRequirement(new String[] { "d7" }), 
-                "Invalid format (day out of range) should throw exception");
-
-        // Invalid parameters - invalid format (out of range)
-        assertThrows(IllegalArgumentException.class, 
-                () -> new TimeSinceDeathRequirement(new String[] { "h24" }), 
-                "Invalid format (hour out of range) should throw exception");
-
-        // Invalid parameters - invalid format (out of range)
-        assertThrows(IllegalArgumentException.class, 
-                () -> new TimeSinceDeathRequirement(new String[] { "m60" }), 
-                "Invalid format (minute out of range) should throw exception");
-
-        // Invalid parameters - invalid format (out of range)
-        assertThrows(IllegalArgumentException.class, 
-                () -> new TimeSinceDeathRequirement(new String[] { "s60" }), 
-                "Invalid format (second out of range) should throw exception");
+        // Now test with max value
+        when(mockPlayer.getStatistic(Statistic.TIME_SINCE_DEATH)).thenReturn(Integer.MAX_VALUE);
+        assertTrue(requirement.meetsRequirement(mockPlayer));
     }
 
     @Test
-    @DisplayName("Time Since Death requirement should check time since death correctly")
-    void shouldCheckTimeSinceDeathCorrectly() {
-        // Setup mock statistics - 3600 seconds (1 hour) since death
-        when(mockPlayerEntity.getStatistic(Statistic.TIME_SINCE_DEATH)).thenReturn(3600 * 1000);
+    void testToString() {
+        // Arrange
+        String[] params = {"m60"};
+        TimeSinceDeathRequirement requirement = new TimeSinceDeathRequirement(params);
 
-        // Time requirement is 30 minutes (less than player's time) - should succeed
-        TimeSinceDeathRequirement lowerRequirement = new TimeSinceDeathRequirement(new String[] { "m30" });
-        assertTrue(lowerRequirement.meetsRequirement(mockPlayer), 
-                "Player alive for 1 hour should meet requirement of 30 minutes");
+        // Act
+        String result = requirement.toString();
 
-        // Time requirement is 1 hour (equal to player's time) - should succeed
-        TimeSinceDeathRequirement equalRequirement = new TimeSinceDeathRequirement(new String[] { "h1" });
-        assertTrue(equalRequirement.meetsRequirement(mockPlayer), 
-                "Player alive for 1 hour should meet requirement of 1 hour");
-
-        // Time requirement is 2 hours (greater than player's time) - should fail
-        TimeSinceDeathRequirement higherRequirement = new TimeSinceDeathRequirement(new String[] { "h2" });
-        assertFalse(higherRequirement.meetsRequirement(mockPlayer), 
-                "Player alive for 1 hour should not meet requirement of 2 hours");
-
-        // Time requirement with multiple units - should succeed
-        TimeSinceDeathRequirement multipleUnitsRequirement = new TimeSinceDeathRequirement(new String[] { "m30 s30" });
-        assertTrue(multipleUnitsRequirement.meetsRequirement(mockPlayer), 
-                "Player alive for 1 hour should meet requirement of 30 minutes and 30 seconds");
-
-        // Test with different time since death
-        when(mockPlayerEntity.getStatistic(Statistic.TIME_SINCE_DEATH)).thenReturn(7200 * 1000);
-        assertTrue(higherRequirement.meetsRequirement(mockPlayer), 
-                "Player alive for 2 hours should meet requirement of 2 hours");
-    }
-
-    @Test
-    @DisplayName("Time Since Death requirement should convert duration correctly")
-    void shouldConvertDurationCorrectly() {
-        // Test months conversion
-        TimeSinceDeathRequirement monthsRequirement = new TimeSinceDeathRequirement(new String[] { "M1" });
-        long expectedMonthsMillis = 30L * 24 * 60 * 60 * 1000;
-        assertEquals(expectedMonthsMillis, getTimeSinceDeathField(monthsRequirement), 
-                "1 month should be converted to " + expectedMonthsMillis + " milliseconds");
-
-        // Test weeks conversion
-        TimeSinceDeathRequirement weeksRequirement = new TimeSinceDeathRequirement(new String[] { "w1" });
-        long expectedWeeksMillis = 7L * 24 * 60 * 60 * 1000;
-        assertEquals(expectedWeeksMillis, getTimeSinceDeathField(weeksRequirement), 
-                "1 week should be converted to " + expectedWeeksMillis + " milliseconds");
-
-        // Test days conversion
-        TimeSinceDeathRequirement daysRequirement = new TimeSinceDeathRequirement(new String[] { "d1" });
-        long expectedDaysMillis = 24L * 60 * 60 * 1000;
-        assertEquals(expectedDaysMillis, getTimeSinceDeathField(daysRequirement), 
-                "1 day should be converted to " + expectedDaysMillis + " milliseconds");
-
-        // Test hours conversion
-        TimeSinceDeathRequirement hoursRequirement = new TimeSinceDeathRequirement(new String[] { "h1" });
-        long expectedHoursMillis = 60L * 60 * 1000;
-        assertEquals(expectedHoursMillis, getTimeSinceDeathField(hoursRequirement), 
-                "1 hour should be converted to " + expectedHoursMillis + " milliseconds");
-
-        // Test minutes conversion
-        TimeSinceDeathRequirement minutesRequirement = new TimeSinceDeathRequirement(new String[] { "m1" });
-        long expectedMinutesMillis = 60L * 1000;
-        assertEquals(expectedMinutesMillis, getTimeSinceDeathField(minutesRequirement), 
-                "1 minute should be converted to " + expectedMinutesMillis + " milliseconds");
-
-        // Test seconds conversion
-        TimeSinceDeathRequirement secondsRequirement = new TimeSinceDeathRequirement(new String[] { "s1" });
-        long expectedSecondsMillis = 1000L;
-        assertEquals(expectedSecondsMillis, getTimeSinceDeathField(secondsRequirement), 
-                "1 second should be converted to " + expectedSecondsMillis + " milliseconds");
-
-        // Test multiple units
-        TimeSinceDeathRequirement multipleUnitsRequirement = new TimeSinceDeathRequirement(new String[] { "h1 m30 s30" });
-        long expectedMultipleUnitsMillis = 60L * 60 * 1000 + 30L * 60 * 1000 + 30L * 1000;
-        assertEquals(expectedMultipleUnitsMillis, getTimeSinceDeathField(multipleUnitsRequirement), 
-                "1 hour, 30 minutes, and 30 seconds should be converted to " + expectedMultipleUnitsMillis + " milliseconds");
-    }
-
-    /**
-     * Helper method to access the private timeSinceDeath field for testing
-     */
-    private long getTimeSinceDeathField(TimeSinceDeathRequirement requirement) {
-        try {
-            java.lang.reflect.Field field = TimeSinceDeathRequirement.class.getDeclaredField("timeSinceDeath");
-            field.setAccessible(true);
-            return (long) field.get(requirement);
-        } catch (Exception e) {
-            fail("Failed to access timeSinceDeath field: " + e.getMessage());
-            return -1;
-        }
+        // Assert
+        assertTrue(result.contains("time-since-death"));
     }
 }

@@ -2,9 +2,9 @@ package dev.flur.ranks.command;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -12,65 +12,89 @@ import org.mockito.MockitoAnnotations;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-@DisplayName("Base Command Tests")
-public class BaseCommandTest {
-
-    @Mock
-    private CommandSender mockSender;
+class BaseCommandTest {
 
     @Mock
-    private Command mockCommand;
+    private CommandSender commandSender;
+
+    @Mock
+    private Command command;
 
     private BaseCommand testCommand;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         MockitoAnnotations.openMocks(this);
-        
-        // Create a concrete implementation of the abstract BaseCommand class for testing
+        // Create a concrete implementation of the abstract BaseCommand for testing
         testCommand = new BaseCommand() {
             @Override
-            public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
-                return true;
+            public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+                return true; // Default implementation for testing
             }
         };
     }
 
-    @Test
-    @DisplayName("Should return empty list for tab completion by default")
-    public void shouldReturnEmptyListForTabCompletionByDefault() {
-        // Call the onTabComplete method
-        List<String> result = testCommand.onTabComplete(mockSender, mockCommand, "label", new String[0]);
-        
-        // Verify that the result is not null and is empty
-        assertNotNull(result, "Tab completion result should not be null");
-        assertTrue(result.isEmpty(), "Tab completion result should be empty by default");
-    }
-
-    @Test
-    @DisplayName("Should allow overriding tab completion")
-    public void shouldAllowOverridingTabCompletion() {
-        // Create a command that overrides onTabComplete
-        BaseCommand customCommand = new BaseCommand() {
-            @Override
-            public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
-                return true;
-            }
+    @Nested
+    @DisplayName("onCommand Tests")
+    class OnCommandTests {
+        @Test
+        @DisplayName("Abstract onCommand method can be implemented")
+        void testOnCommandImplementation() {
+            // Arrange
+            String[] args = new String[0];
             
-            @Override
-            public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
-                return List.of("test1", "test2");
-            }
-        };
+            // Act
+            boolean result = testCommand.onCommand(commandSender, command, "label", args);
+            
+            // Assert
+            assertTrue(result, "Default implementation should return true");
+        }
+    }
+
+    @Nested
+    @DisplayName("onTabComplete Tests")
+    class OnTabCompleteTests {
+        @Test
+        @DisplayName("Default onTabComplete returns empty list")
+        void testDefaultTabComplete() {
+            // Arrange
+            String[] args = new String[0];
+            
+            // Act
+            List<String> result = testCommand.onTabComplete(commandSender, command, "label", args);
+            
+            // Assert
+            assertNotNull(result, "Tab complete result should not be null");
+            assertTrue(result.isEmpty(), "Default tab complete should return empty list");
+            assertEquals(List.of(), result, "Default tab complete should return List.of()");
+        }
         
-        // Call the onTabComplete method
-        List<String> result = customCommand.onTabComplete(mockSender, mockCommand, "label", new String[0]);
-        
-        // Verify that the result is not null and contains the expected values
-        assertNotNull(result, "Tab completion result should not be null");
-        assertEquals(2, result.size(), "Tab completion result should have 2 items");
-        assertTrue(result.contains("test1"), "Tab completion result should contain 'test1'");
-        assertTrue(result.contains("test2"), "Tab completion result should contain 'test2'");
+        @Test
+        @DisplayName("onTabComplete can be overridden")
+        void testOverriddenTabComplete() {
+            // Arrange
+            BaseCommand customCommand = new BaseCommand() {
+                @Override
+                public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+                    return true;
+                }
+                
+                @Override
+                public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
+                    return List.of("test", "custom");
+                }
+            };
+            String[] args = new String[0];
+            
+            // Act
+            List<String> result = customCommand.onTabComplete(commandSender, command, "label", args);
+            
+            // Assert
+            assertNotNull(result, "Tab complete result should not be null");
+            assertEquals(2, result.size(), "Custom tab complete should return 2 items");
+            assertEquals(List.of("test", "custom"), result, "Custom tab complete should return custom list");
+        }
     }
 }

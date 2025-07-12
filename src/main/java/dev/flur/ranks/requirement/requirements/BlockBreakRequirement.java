@@ -1,18 +1,20 @@
 package dev.flur.ranks.requirement.requirements;
 
 import dev.flur.ranks.requirement.AnnotatedRequirement;
-import dev.flur.ranks.requirement.RequirementName;
-import dev.flur.ranks.requirement.RequirementParams;
+import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
 import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Objects;
 
-@RequirementName("block-break")
-@RequirementParams(minimum = 2, usage = "Format: block1 [block2 ...] amount")
+@RequirementAnnotation(
+        name = "block-break",
+        minimum = 2,
+        usage = "Format: block1 [block2 ...] amount"
+)
 public final class BlockBreakRequirement extends AnnotatedRequirement {
 
     private final List<String> materials;
@@ -38,16 +40,22 @@ public final class BlockBreakRequirement extends AnnotatedRequirement {
     }
 
     @Override
-    public boolean meetsRequirement(@NotNull OfflinePlayer player) {
-        // Your existing implementation
-        int total = 0;
+    public boolean meetsRequirement(@NotNull Player player) {
+        // Check each block individually
         for (String material : materials) {
-            total += Objects.requireNonNull(player.getPlayer())
-                    .getStatistic(
-                            Statistic.MINE_BLOCK,
-                            Objects.requireNonNull(Material.getMaterial(material.toUpperCase()))
-                    );
+            int breaks = player.getStatistic(
+                    Statistic.MINE_BLOCK,
+                    Objects.requireNonNull(Material.getMaterial(material.toUpperCase()))
+            );
+            if (breaks < (int) super.amount) {
+                return false;
+            }
         }
-        return total >= (int) super.amount;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "block-break: " + String.join(", ", materials) + " - " + (int) super.amount;
     }
 }

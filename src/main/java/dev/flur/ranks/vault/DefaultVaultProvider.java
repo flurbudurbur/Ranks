@@ -9,14 +9,14 @@ import org.bukkit.plugin.java.JavaPlugin;
  * Default implementation of VaultProvider that uses the actual Vault services.
  */
 public class DefaultVaultProvider implements VaultProvider {
-    
+
+    private final JavaPlugin plugin;
     private Economy economy;
     private Permission permission;
-    private final JavaPlugin plugin;
-    
+
     /**
      * Constructs a new DefaultVaultProvider.
-     * 
+     *
      * @param plugin the JavaPlugin instance
      */
     public DefaultVaultProvider(JavaPlugin plugin) {
@@ -24,7 +24,7 @@ public class DefaultVaultProvider implements VaultProvider {
         setupEconomy();
         setupPermissions();
     }
-    
+
     /**
      * Sets up the Economy service.
      */
@@ -38,7 +38,7 @@ public class DefaultVaultProvider implements VaultProvider {
         }
         economy = rsp.getProvider();
     }
-    
+
     /**
      * Sets up the Permission service.
      */
@@ -49,12 +49,12 @@ public class DefaultVaultProvider implements VaultProvider {
         }
         permission = rsp.getProvider();
     }
-    
+
     @Override
     public Economy getEconomy() {
         return economy;
     }
-    
+
     @Override
     public Permission getPermissions() {
         return permission;

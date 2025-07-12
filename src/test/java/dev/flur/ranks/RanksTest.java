@@ -1,116 +1,159 @@
 package dev.flur.ranks;
 
+import dev.flur.ranks.service.ServiceContainer;
 import dev.flur.ranks.vault.VaultProvider;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
+import org.bukkit.Server;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.junit.jupiter.api.AfterEach;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.ServicesManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-import java.io.File;
-import java.io.InputStream;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 
-public class RanksTest {
-
-    @Mock
-    private Ranks mockPlugin;
-
-    @Mock
-    private Economy mockEconomy;
+class RanksTest {
 
     @Mock
-    private Permission mockPermission;
+    private Server server;
 
     @Mock
-    private File mockDataFolder;
+    private PluginManager pluginManager;
 
     @Mock
-    private FileConfiguration mockConfig;
+    private ServicesManager servicesManager;
 
     @Mock
-    private Logger mockLogger;
+    private RegisteredServiceProvider<Economy> economyProvider;
 
-    private VaultProvider mockVaultProvider;
-    private MockedStatic<Ranks> mockedStaticRanks;
+    @Mock
+    private RegisteredServiceProvider<Permission> permissionProvider;
+
+    @Mock
+    private Economy economy;
+
+    @Mock
+    private Permission permission;
+
+    @Mock
+    private FileConfiguration config;
+
+    @Mock
+    private Logger logger;
+
+    private TestableRanks plugin;
 
     @BeforeEach
-    public void setUp() {
-        // Initialize Mockito annotations
+    void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        // Mock the static getPlugin method
-        mockedStaticRanks = Mockito.mockStatic(Ranks.class);
-        mockedStaticRanks.when(Ranks::getPlugin).thenReturn(mockPlugin);
+        // Setup server mock
+        when(server.getPluginManager()).thenReturn(pluginManager);
+        when(server.getServicesManager()).thenReturn(servicesManager);
 
-        // Set up the mock plugin
-        when(mockPlugin.getDataFolder()).thenReturn(mockDataFolder);
-        when(mockPlugin.getConfig()).thenReturn(mockConfig);
-        when(mockPlugin.getLogger()).thenReturn(mockLogger);
+        // Setup plugin manager mock
+        when(pluginManager.getPlugin("Vault")).thenReturn(mock(Plugin.class));
 
-        // Create a mock VaultProvider
-        mockVaultProvider = new VaultProvider() {
-            @Override
-            public Economy getEconomy() {
-                return mockEconomy;
-            }
+        // Setup services manager mock
+        when(servicesManager.getRegistration(Economy.class)).thenReturn(economyProvider);
+        when(servicesManager.getRegistration(Permission.class)).thenReturn(permissionProvider);
 
-            @Override
-            public Permission getPermissions() {
-                return mockPermission;
-            }
-        };
+        // Setup providers
+        when(economyProvider.getProvider()).thenReturn(economy);
+        when(permissionProvider.getProvider()).thenReturn(permission);
 
-        // Mock the static methods of Ranks
-        mockedStaticRanks.when(Ranks::getEconomy).thenReturn(mockEconomy);
-        mockedStaticRanks.when(Ranks::getPermissions).thenReturn(mockPermission);
-        mockedStaticRanks.when(Ranks::getVaultProvider).thenReturn(mockVaultProvider);
+        // Setup config mock
+        when(config.getBoolean("debug")).thenReturn(false);
 
-        // Mock the plugin's enabled state
-        when(mockPlugin.isEnabled()).thenReturn(true);
-
-        // Mock the resource loading
-        InputStream mockInputStream = mock(InputStream.class);
-        when(mockPlugin.getResource(anyString())).thenReturn(mockInputStream);
-
-        // Mock the config values
-        when(mockConfig.getBoolean("debug")).thenReturn(false);
-    }
-
-    @AfterEach
-    public void tearDown() {
-        // Close the static mock to prevent memory leaks
-        mockedStaticRanks.close();
+        // Create plugin instance with mocked dependencies
+        plugin = new TestableRanks(config, logger);
     }
 
     @Test
-    public void testPluginLoads() {
-        // Verify the plugin was loaded
-        assertNotNull(mockPlugin);
-        assertTrue(mockPlugin.isEnabled());
+    void testOnEnable() {
+        // Call onEnable
+        plugin.onEnable();
+
+        // Verify that the vault provider was initialized
+        assertNotNull(plugin.getVaultProvider());
+
+        // Verify that the service container was initialized
+        assertNotNull(plugin.getServiceContainer());
+
+        // Verify debug mode is set from config
+        assertFalse(plugin.isDebugEnabled());
+
+        // Verify logger was called
+        verify(logger).info(anyString());
     }
 
     @Test
-    public void testMockVaultProvider() {
-        // Verify that our mock VaultProvider is being used
-        assertSame(mockEconomy, Ranks.getEconomy());
-        assertSame(mockPermission, Ranks.getPermissions());
+    void testOnDisable() {
+        // First call onEnable to initialize services
+        plugin.onEnable();
+
+        // The serviceContainer is already a mock, so we can directly verify it
+        ServiceContainer serviceContainer = plugin.getServiceContainer();
+
+        // Call onDisable
+        plugin.onDisable();
+
+        // Verify that stop was called on the service container
+        verify(serviceContainer).stop();
+
+        // Verify logger was called at least once
+        verify(logger, atLeastOnce()).info(anyString());
     }
 
     @Test
-    public void testPluginConfiguration() {
-        // Verify that the plugin's configuration is accessible
-        assertNotNull(mockPlugin.getConfig());
-        // Test that we can get a boolean value from the config
-        boolean debugValue = mockConfig.getBoolean("debug");
-        assertFalse(debugValue); // We set it to false in setUp()
+    void testGetVaultProvider() {
+        // First call onEnable to initialize the vault provider
+        plugin.onEnable();
+
+        // Get the vault provider
+        VaultProvider vaultProvider = plugin.getVaultProvider();
+
+        // Verify it's not null
+        assertNotNull(vaultProvider);
+    }
+
+    @Test
+    void testGetServiceContainer() {
+        // First call onEnable to initialize the service container
+        plugin.onEnable();
+
+        // Get the service container
+        ServiceContainer serviceContainer = plugin.getServiceContainer();
+
+        // Verify it's not null
+        assertNotNull(serviceContainer);
+    }
+
+    @Test
+    void testIsDebugEnabled() {
+        // Call onEnable to initialize debug field
+        plugin.onEnable();
+
+        // Test with debug=false (default)
+        assertFalse(plugin.isDebugEnabled());
+
+        // Change mock to return true
+        when(config.getBoolean("debug")).thenReturn(true);
+
+        // Reinitialize plugin
+        plugin.onEnable();
+
+        // Now debug should be true
+        assertTrue(plugin.isDebugEnabled());
     }
 }

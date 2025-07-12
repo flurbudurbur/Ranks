@@ -1,36 +1,42 @@
 package dev.flur.ranks.command.commands;
 
-import dev.flur.ranks.Ranks;
+import dev.flur.commands.CommandInfo;
 import dev.flur.ranks.command.BaseCommand;
-import dev.flur.ranks.command.CommandInfo;
 import dev.flur.ranks.requirement.Requirement;
-import dev.flur.ranks.utils.Utils;
+import dev.flur.ranks.service.RanksService;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 @CommandInfo(
-    name = "requirements",
-    permission = "ranks.requirements",
-    description = "View requirements for ranks"
+        name = "requirements",
+        permission = "ranks.requirements",
+        description = "View requirements for ranks"
 )
-public class RequirementsCommand extends BaseCommand {
+public final class RequirementsCommand extends BaseCommand {
 
-    public RequirementsCommand() {}
+    private final RanksService ranksService;
+    private final Logger logger;
+
+    public RequirementsCommand(RanksService ranksService, Logger logger) {
+        this.ranksService = ranksService;
+        this.logger = logger;
+    }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
+    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String
+            s, @NotNull String[] strings) {
         if (commandSender instanceof Player p) {
             try {
                 if (strings.length >= 1) {
-                    Ranks.getPlugin().getLogger().info("Requirements for " + strings[0] + ":");
-                    ArrayList<Requirement> reqs = Utils.getRequirements(strings[0], p);
+                    logger.info("Requirements for " + strings[0] + ":");
+                    List<Requirement> reqs = ranksService.getRequirements(strings[0], p);
                     for (Requirement req : reqs) {
                         p.sendMessage(req.toString());
                     }
@@ -43,10 +49,15 @@ public class RequirementsCommand extends BaseCommand {
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        HashMap<String, String> nexts = Utils.getNext(Ranks.getPermissions().getPrimaryGroup((Player) sender));
+    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command
+            command, @NotNull String label, @NotNull String @NotNull [] args) {
+        if (!(sender instanceof Player player)) {
+            return List.of();
+        }
+
+        Map<String, String> nextRanks = ranksService.getNextRanks(ranksService.getCurrentRank(player));
         if (args.length == 1) {
-            return new ArrayList<>(nexts.keySet());
+            return new ArrayList<>(nextRanks.keySet());
         }
 
         return List.of();

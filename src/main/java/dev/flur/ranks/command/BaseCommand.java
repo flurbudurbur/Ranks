@@ -12,12 +12,20 @@ import java.util.List;
 public abstract class BaseCommand implements CommandExecutor, TabCompleter {
 
     @Override
-    public abstract boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
-                                      @NotNull String label, @NotNull String[] args);
+    public abstract boolean onCommand(
+            @NotNull CommandSender sender,
+            @NotNull Command command,
+            @NotNull String label,
+            @NotNull String[] args
+    );
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
-                                                @NotNull String label, @NotNull String[] args) {
+    public @Nullable List<String> onTabComplete(
+            @NotNull CommandSender sender,
+            @NotNull Command command,
+            @NotNull String label,
+            @NotNull String[] args
+    ) {
         return List.of();
     }
 }

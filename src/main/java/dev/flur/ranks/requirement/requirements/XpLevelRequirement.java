@@ -1,16 +1,16 @@
 package dev.flur.ranks.requirement.requirements;
 
 import dev.flur.ranks.requirement.AnnotatedRequirement;
-import dev.flur.ranks.requirement.RequirementName;
-import dev.flur.ranks.requirement.RequirementParams;
-import org.bukkit.OfflinePlayer;
+import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Objects;
 
-
-@RequirementName("xp-level")
-@RequirementParams(minimum = 1, maximum = 1, usage = "Format: level")
+@RequirementAnnotation(
+        name = "xp-level",
+        maximum = 1,
+        usage = "Format: level"
+)
 public final class XpLevelRequirement extends AnnotatedRequirement {
 
     public XpLevelRequirement(String[] params) {
@@ -18,7 +18,12 @@ public final class XpLevelRequirement extends AnnotatedRequirement {
     }
 
     @Override
-    public boolean meetsRequirement(@NotNull OfflinePlayer player) {
-        return (int) super.amount <= Objects.requireNonNull(player.getPlayer()).getLevel();
+    public boolean meetsRequirement(@NotNull Player player) {
+        return (int) super.amount <= player.getLevel();
+    }
+
+    @Override
+    public String toString() {
+        return "xp-level: " + (int) super.amount;
     }
 }

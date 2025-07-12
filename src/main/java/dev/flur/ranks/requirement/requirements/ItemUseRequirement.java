@@ -1,18 +1,21 @@
 package dev.flur.ranks.requirement.requirements;
 
 import dev.flur.ranks.requirement.AnnotatedRequirement;
-import dev.flur.ranks.requirement.RequirementName;
-import dev.flur.ranks.requirement.RequirementParams;
+import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
 import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Objects;
 
-@RequirementName("item-use")
-@RequirementParams(minimum = 2, maximum = 10, usage = "Format: item1 [item2 ...] amount")
+@RequirementAnnotation(
+        name = "item-use",
+        minimum = 2,
+        maximum = 10,
+        usage = "Format: item1 [item2 ...] amount"
+)
 public final class ItemUseRequirement extends AnnotatedRequirement {
 
     private final List<String> items;
@@ -38,19 +41,26 @@ public final class ItemUseRequirement extends AnnotatedRequirement {
 
 
     @Override
-    public boolean meetsRequirement(@NotNull OfflinePlayer player) {
-        int total = 0;
+    public boolean meetsRequirement(@NotNull Player player) {
+        // Check each item individually
         for (String item : this.items) {
             try {
-                total += Objects.requireNonNull(player.getPlayer())
-                    .getStatistic(
-                            Statistic.USE_ITEM,
-                            Objects.requireNonNull(Material.getMaterial(item.toUpperCase()))
-                    );
+                int uses = player.getStatistic(
+                        Statistic.USE_ITEM,
+                        Objects.requireNonNull(Material.getMaterial(item.toUpperCase()))
+                );
+                if (uses < (int) super.amount) {
+                    return false;
+                }
             } catch (Exception e) {
                 throw new IllegalArgumentException("Invalid item: " + item);
             }
         }
-        return total >= (int) super.amount;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "item-use: " + String.join(", ", items) + " - " + (int) super.amount;
     }
 }

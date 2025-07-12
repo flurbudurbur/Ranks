@@ -1,153 +1,236 @@
 package dev.flur.ranks.command.commands;
 
-import dev.flur.ranks.Ranks;
-import dev.flur.ranks.command.CommandInfo;
 import dev.flur.ranks.requirement.Requirement;
-import dev.flur.ranks.utils.Utils;
-import net.milkbowl.vault.permission.Permission;
+import dev.flur.ranks.service.RanksService;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@DisplayName("Requirements Command Tests")
-public class RequirementsCommandTest {
+class RequirementsCommandTest {
 
     @Mock
-    private CommandSender mockSender;
+    private RanksService ranksService;
 
     @Mock
-    private Player mockPlayer;
+    private Logger logger;
 
     @Mock
-    private Command mockCommand;
+    private Command command;
 
     @Mock
-    private Permission mockPermission;
+    private Player player;
 
     @Mock
-    private Ranks mockPlugin;
+    private CommandSender nonPlayerSender;
 
     @Mock
-    private Logger mockLogger;
+    private Requirement requirement1;
 
     @Mock
-    private Requirement mockRequirement;
+    private Requirement requirement2;
 
     private RequirementsCommand requirementsCommand;
-    private MockedStatic<Ranks> mockedStaticRanks;
-    private MockedStatic<Utils> mockedStaticUtils;
+    private String[] emptyArgs = new String[0];
+    private String[] validArgs = new String[]{"next-rank"};
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         MockitoAnnotations.openMocks(this);
-        requirementsCommand = new RequirementsCommand();
+        requirementsCommand = new RequirementsCommand(ranksService, logger);
 
-        // Mock static methods
-        mockedStaticRanks = mockStatic(Ranks.class);
-        mockedStaticRanks.when(Ranks::getPermissions).thenReturn(mockPermission);
-        mockedStaticRanks.when(Ranks::getPlugin).thenReturn(mockPlugin);
-
-        mockedStaticUtils = mockStatic(Utils.class);
-
-        // Set up the mock plugin
-        when(mockPlugin.getLogger()).thenReturn(mockLogger);
-
-        // Set up the mock player
-        when(mockPermission.getPrimaryGroup(any(Player.class))).thenReturn("current-rank");
-
-        // Set up the mock requirement
-        when(mockRequirement.toString()).thenReturn("Test Requirement");
+        // Setup requirement mocks
+        when(requirement1.toString()).thenReturn("Requirement 1");
+        when(requirement2.toString()).thenReturn("Requirement 2");
     }
 
-    @AfterEach
-    public void tearDown() {
-        mockedStaticRanks.close();
-        mockedStaticUtils.close();
+    @Nested
+    @DisplayName("Sender Type Tests")
+    class SenderTypeTests {
+        @Test
+        @DisplayName("onCommand returns true and does nothing for non-player sender")
+        void testOnCommandWithNonPlayerSender() {
+            // Act
+            boolean result = requirementsCommand.onCommand(nonPlayerSender, command, "requirements", validArgs);
+
+            // Assert
+            assertTrue(result, "Command should return true for non-player sender");
+            verifyNoInteractions(ranksService);
+            verify(logger, never()).info(anyString());
+        }
     }
 
-    @Test
-    @DisplayName("Should have correct command info annotation")
-    public void shouldHaveCorrectCommandInfoAnnotation() {
-        // Get the CommandInfo annotation
-        CommandInfo info = RequirementsCommand.class.getAnnotation(CommandInfo.class);
+    @Nested
+    @DisplayName("Arguments Tests")
+    class ArgumentsTests {
+        @Test
+        @DisplayName("onCommand returns true and does nothing with empty args")
+        void testOnCommandWithEmptyArgs() {
+            // Act
+            boolean result = requirementsCommand.onCommand(player, command, "requirements", emptyArgs);
 
-        // Verify that the annotation is not null
-        assertNotNull(info, "CommandInfo annotation should not be null");
+            // Assert
+            assertTrue(result, "Command should return true with empty args");
+            verifyNoInteractions(ranksService);
+            verify(logger, never()).info(anyString());
+        }
 
-        // Verify that the annotation values are correct
-        assertEquals("requirements", info.name(), "Command name should be 'requirements'");
-        assertEquals("ranks.requirements", info.permission(), "Command permission should be 'ranks.requirements'");
-        assertEquals("View requirements for ranks", info.description(), "Command description should be 'View requirements for ranks'");
+        @Test
+        @DisplayName("onCommand processes valid rank argument")
+        void testOnCommandWithValidRankArg() {
+            // Arrange
+            List<Requirement> requirements = Arrays.asList(requirement1, requirement2);
+            when(ranksService.getRequirements("next-rank", player)).thenReturn(requirements);
+
+            // Act
+            boolean result = requirementsCommand.onCommand(player, command, "requirements", validArgs);
+
+            // Assert
+            assertTrue(result, "Command should return true with valid rank arg");
+            verify(logger).info("Requirements for next-rank:");
+            verify(ranksService).getRequirements("next-rank", player);
+            verify(player).sendMessage("Requirement 1");
+            verify(player).sendMessage("Requirement 2");
+        }
+
+        @Test
+        @DisplayName("onCommand handles empty requirements list")
+        void testOnCommandWithEmptyRequirementsList() {
+            // Arrange
+            when(ranksService.getRequirements("next-rank", player)).thenReturn(Collections.emptyList());
+
+            // Act
+            boolean result = requirementsCommand.onCommand(player, command, "requirements", validArgs);
+
+            // Assert
+            assertTrue(result, "Command should return true with empty requirements list");
+            verify(logger).info("Requirements for next-rank:");
+            verify(ranksService).getRequirements("next-rank", player);
+            verify(player, never()).sendMessage(anyString());
+        }
     }
 
-    @Test
-    @DisplayName("Should display requirements for specified rank")
-    public void shouldDisplayRequirementsForSpecifiedRank() {
-        // Set up the mock Utils.getRequirements to return a list with one requirement
-        ArrayList<Requirement> requirements = new ArrayList<>();
-        requirements.add(mockRequirement);
-        mockedStaticUtils.when(() -> Utils.getRequirements(anyString(), any(Player.class))).thenReturn(requirements);
+    @Nested
+    @DisplayName("Error Handling Tests")
+    class ErrorHandlingTests {
+        @Test
+        @DisplayName("onCommand handles exception from service")
+        void testOnCommandHandlesException() {
+            // Arrange
+            when(ranksService.getRequirements("next-rank", player)).thenThrow(new RuntimeException("Test exception"));
 
-        // Execute the command as a player with a rank argument
-        boolean result = requirementsCommand.onCommand(mockPlayer, mockCommand, "requirements", new String[]{"next-rank"});
+            // Act
+            boolean result = requirementsCommand.onCommand(player, command, "requirements", validArgs);
 
-        // Verify that the command returned true
-        assertTrue(result, "Command should return true");
-
-        // Verify that the logger was called
-        verify(mockLogger).info(contains("Requirements for next-rank"));
-
-        // Verify that the player was shown the requirements
-        verify(mockPlayer).sendMessage("Test Requirement");
+            // Assert
+            assertTrue(result, "Command should return true when exception occurs");
+            verify(logger).info("Requirements for next-rank:");
+            verify(ranksService).getRequirements("next-rank", player);
+            verify(player).sendMessage("Invalid input");
+        }
     }
 
-    @Test
-    @DisplayName("Should handle exceptions")
-    public void shouldHandleExceptions() {
-        // Set up the mock Utils.getRequirements to throw an exception
-        mockedStaticUtils.when(() -> Utils.getRequirements(anyString(), any(Player.class))).thenThrow(new RuntimeException("Test exception"));
+    @Nested
+    @DisplayName("Tab Completion Tests")
+    class TabCompletionTests {
+        @Test
+        @DisplayName("onTabComplete returns empty list for non-player sender")
+        void testOnTabCompleteWithNonPlayerSender() {
+            // Act
+            List<String> result = requirementsCommand.onTabComplete(nonPlayerSender, command, "requirements", emptyArgs);
 
-        // Execute the command as a player with a rank argument
-        boolean result = requirementsCommand.onCommand(mockPlayer, mockCommand, "requirements", new String[]{"next-rank"});
+            // Assert
+            assertTrue(result.isEmpty(), "Tab completion should return empty list for non-player sender");
+            verifyNoInteractions(ranksService);
+        }
 
-        // Verify that the command returned true
-        assertTrue(result, "Command should return true");
+        @Test
+        @DisplayName("onTabComplete returns next ranks for player")
+        void testOnTabCompleteWithPlayer() {
+            // Arrange
+            Map<String, String> nextRanks = new HashMap<>();
+            nextRanks.put("rank1", "Rank 1");
+            nextRanks.put("rank2", "Rank 2");
 
-        // Verify that the player was informed about the invalid input
-        verify(mockPlayer).sendMessage("Invalid input");
-    }
+            when(ranksService.getCurrentRank(player)).thenReturn("current-rank");
+            when(ranksService.getNextRanks("current-rank")).thenReturn(nextRanks);
 
-    @Test
-    @DisplayName("Should provide tab completion")
-    public void shouldProvideTabCompletion() {
-        // Set up the mock Utils.getNext to return multiple ranks
-        HashMap<String, String> nextRanks = new HashMap<>();
-        nextRanks.put("rank1", "path1");
-        nextRanks.put("rank2", "path2");
-        mockedStaticUtils.when(() -> Utils.getNext(anyString())).thenReturn(nextRanks);
+            // Act
+            // The RequirementsCommand.onTabComplete method only returns the next ranks if args.length == 1
+            String[] args = new String[]{""};
+            List<String> result = requirementsCommand.onTabComplete(player, command, "requirements", args);
 
-        // Execute tab completion
-        List<String> completions = requirementsCommand.onTabComplete(mockPlayer, mockCommand, "requirements", new String[]{"r"});
+            // Assert
+            assertEquals(2, result.size(), "Tab completion should return 2 next ranks");
+            assertTrue(result.contains("rank1"), "Tab completion should include rank1");
+            assertTrue(result.contains("rank2"), "Tab completion should include rank2");
+            verify(ranksService).getCurrentRank(player);
+            verify(ranksService).getNextRanks("current-rank");
+        }
 
-        // Verify that the completions are not null and contain the expected values
-        assertNotNull(completions, "Tab completions should not be null");
-        assertEquals(2, completions.size(), "Should return 2 completions");
-        assertTrue(completions.contains("rank1"), "Completions should contain 'rank1'");
-        assertTrue(completions.contains("rank2"), "Completions should contain 'rank2'");
+        @Test
+        @DisplayName("onTabComplete returns empty list when args length is not 1")
+        void testOnTabCompleteWithInvalidArgsLength() {
+            // Arrange
+            String[] args = new String[]{"arg1", "arg2"};
+            Map<String, String> nextRanks = new HashMap<>();
+            nextRanks.put("rank1", "Rank 1");
+
+            when(ranksService.getCurrentRank(player)).thenReturn("current-rank");
+            when(ranksService.getNextRanks("current-rank")).thenReturn(nextRanks);
+
+            // Act
+            List<String> result = requirementsCommand.onTabComplete(player, command, "requirements", args);
+
+            // Assert
+            assertTrue(result.isEmpty(), "Tab completion should return empty list when args length is not 1");
+            verify(ranksService).getCurrentRank(player);
+            verify(ranksService).getNextRanks("current-rank");
+        }
+
+        @Test
+        @DisplayName("onTabComplete handles empty next ranks")
+        void testOnTabCompleteWithEmptyNextRanks() {
+            // Arrange
+            when(ranksService.getCurrentRank(player)).thenReturn("current-rank");
+            when(ranksService.getNextRanks("current-rank")).thenReturn(Collections.emptyMap());
+
+            // Act
+            List<String> result = requirementsCommand.onTabComplete(player, command, "requirements", emptyArgs);
+
+            // Assert
+            assertTrue(result.isEmpty(), "Tab completion should return empty list when no next ranks are available");
+            verify(ranksService).getCurrentRank(player);
+            verify(ranksService).getNextRanks("current-rank");
+        }
+
+        @Test
+        @DisplayName("onTabComplete handles exception")
+        void testOnTabCompleteHandlesException() {
+            // Arrange
+            when(ranksService.getCurrentRank(player)).thenThrow(new RuntimeException("Test exception"));
+
+            // Act & Assert
+            // Since the RequirementsCommand doesn't catch exceptions in onTabComplete, we expect the exception to be thrown
+            assertThrows(RuntimeException.class, () -> {
+                requirementsCommand.onTabComplete(player, command, "requirements", emptyArgs);
+            });
+            verify(ranksService).getCurrentRank(player);
+        }
     }
 }

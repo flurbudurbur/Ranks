@@ -1,20 +1,33 @@
 package dev.flur.ranks.requirement;
 
+import dev.flur.ranks.requirement.records.RequirementRecord;
+import dev.flur.ranks.service.services.DefaultRequirementRegistry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Factory class for creating requirement instances from string representations.
  * <p>
- * This factory works with the {@link RequirementRegistry} to dynamically create
+ * This factory works with the {@link DefaultRequirementRegistry} to dynamically create
  * requirement instances based on registered requirement types.
  * </p>
  *
- * @see RequirementRegistry
+ * @see DefaultRequirementRegistry
  * @see AnnotatedRequirement
  * @since 1.0
  */
 public class RequirementFactory {
+
+    private final DefaultRequirementRegistry registry;
+
+    /**
+     * Creates a new RequirementFactory with the specified registry.
+     *
+     * @param registry the requirement registry to use
+     */
+    public RequirementFactory(@NotNull DefaultRequirementRegistry registry) {
+        this.registry = registry;
+    }
 
     /**
      * Creates a requirement instance from a string representation.
@@ -28,12 +41,12 @@ public class RequirementFactory {
      * @throws IllegalArgumentException if the input is invalid or the requirement type is not found
      */
     @NotNull
-    public static Requirement createRequirement(@NotNull String input) {
+    public Requirement createRequirement(@NotNull String input) {
+        if (input.trim().isEmpty()) throw new IllegalArgumentException("Invalid requirement input: " + input);
         String[] token = input.split("\\s+");
-        if (token.length == 0) throw new IllegalArgumentException("Invalid requirement input: " + input);
 
         String key = token[0].toLowerCase();
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromName(key);
+        RequirementRecord info = registry.fromName(key);
         if (info == null) {
             throw new IllegalArgumentException("Invalid requirement type: " + key);
         }
@@ -54,8 +67,8 @@ public class RequirementFactory {
      * @return The name of the requirement, or null if not found in the registry
      */
     @Nullable
-    public static String getRequirementName(@NotNull Requirement requirement) {
-        RequirementRegistry.RequirementInfo info = RequirementRegistry.fromClass(requirement.getClass());
+    public String getRequirementName(@NotNull Requirement requirement) {
+        RequirementRecord info = registry.fromClass(requirement.getClass());
         return info != null ? info.name() : null;
     }
 }

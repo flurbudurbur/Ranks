@@ -1,7 +1,7 @@
-name: ranks
-version: '1.0-SNAPSHOT'
+name: ${project.name}
+version: ${project.version}
 main: dev.flur.ranks.Ranks
-api-version: '1.8'
+api-version: '1.21'
 depend:
   - 'Vault'
 softdepend:
@@ -10,5 +10,4 @@ softdepend:
 authors:
   - 'flurbudurbur'
 
-commands:
 # Commands will be auto-generated and merged here
