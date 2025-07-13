@@ -1,0 +1,20 @@
+[general]
+no-permission = "<red>You don't have permission to do this."
+player-only = "<red>This command can only be used by players."
+error-occurred = "<red>An error occurred while processing your request."
+
+[rankup]
+highest-rank = "<red>You are already at the highest rank!"
+multiple-ranks = "<yellow>You have multiple ranks to choose from:"
+rank-list-item = "<gray>- <yellow><< rank >></yellow>"
+success = "<green>Congratulations! You have been ranked up to <yellow><< targetRank >></yellow>!"
+requirements-not-met = "<red>You don't meet the following requirements:"
+requirement-item = "<gray>- <red><< requirement >></red>"
+invalid-rank = "<red>Invalid rank specified. Available ranks:"
+current-rank-error = "<red>Unable to determine your current rank."
+failed = "<red>Failed to update your rank. Please contact an administrator."
+broadcast = "<yellow><< playerName >> </yellow><green>has been ranked up from <yellow><< currentRank >></yellow> to <yellow><< targetRank >></yellow>!"
+
+[admin.reload]
+completed = "<orange>Partial <aqua>reload has completed!"
+full-completed = "<orange>Full <aqua>reload has completed!"

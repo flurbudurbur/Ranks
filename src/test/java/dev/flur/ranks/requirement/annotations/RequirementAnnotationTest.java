@@ -1,6 +1,7 @@
 package dev.flur.ranks.requirement.annotations;
 
 import dev.flur.ranks.requirement.AnnotatedRequirement;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,7 +20,7 @@ class RequirementAnnotationTest {
         }
 
         @Override
-        public boolean meetsRequirement(org.bukkit.entity.Player player) {
+        public boolean meetsRequirement(org.bukkit.entity.@NotNull Player player) {
             return false;
         }
     }
@@ -33,7 +34,7 @@ class RequirementAnnotationTest {
         }
 
         @Override
-        public boolean meetsRequirement(org.bukkit.entity.Player player) {
+        public boolean meetsRequirement(org.bukkit.entity.@NotNull Player player) {
             return false;
         }
     }

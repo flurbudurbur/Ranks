@@ -9,8 +9,8 @@ import net.milkbowl.vault.permission.Permission;
  */
 public class TestableVaultProvider implements VaultProvider {
 
-    private Economy economy;
-    private Permission permission;
+    private final Economy economy;
+    private final Permission permission;
 
     /**
      * Constructs a new TestableVaultProvider with the given Economy and Permission instances.

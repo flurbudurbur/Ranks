@@ -1,6 +1,7 @@
 package dev.flur.ranks.requirement.records;
 
 import dev.flur.ranks.requirement.Requirement;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.Function;
@@ -12,12 +13,12 @@ class RequirementRecordTest {
     // Simple test implementation of Requirement
     private static class TestRequirement implements Requirement {
         @Override
-        public boolean meetsRequirement(org.bukkit.entity.Player player) {
+        public boolean meetsRequirement(org.bukkit.entity.@NotNull Player player) {
             return false;
         }
 
         @Override
-        public void consume(org.bukkit.entity.Player player) {
+        public void consume(org.bukkit.entity.@NotNull Player player) {
             // Do nothing
         }
     }

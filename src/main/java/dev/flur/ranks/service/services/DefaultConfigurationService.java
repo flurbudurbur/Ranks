@@ -1,8 +1,7 @@
 package dev.flur.ranks.service.services;
 
 import dev.flur.ranks.service.ConfigurationService;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,13 +16,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Default implementation of ConfigurationService.
+ * Default implementation of ConfigurationService using TOML.
  */
 public class DefaultConfigurationService implements ConfigurationService {
 
     private final JavaPlugin plugin;
     private final Logger logger;
-    private final Map<String, FileConfiguration> configCache;
+    private final Map<String, TomlConfiguration> configCache;
 
     public DefaultConfigurationService(@NotNull JavaPlugin plugin) {
         this.plugin = plugin;
@@ -33,24 +32,25 @@ public class DefaultConfigurationService implements ConfigurationService {
 
     @Override
     @NotNull
-    public FileConfiguration getConfiguration(@NotNull String fileName) {
+    public TomlConfiguration getConfiguration(@NotNull String fileName) {
         if (configCache.containsKey(fileName)) {
             return configCache.get(fileName);
         }
 
-        File configFile = new File(plugin.getDataFolder(), fileName + ".yml");
+        File configFile = new File(plugin.getDataFolder(), fileName + ".toml");
         if (!configFile.exists()) {
-            generateFile(fileName + ".yml");
+            generateFile(fileName + ".toml");
         }
 
         try {
-            FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+            TomlConfiguration config = new TomlConfiguration(configFile);
             configCache.put(fileName, config);
             return config;
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Failed to load configuration file: " + fileName + ".yml", e);
+            logger.log(Level.SEVERE, "Failed to load configuration file: " + fileName + ".toml", e);
             // Return empty configuration as fallback
-            FileConfiguration fallback = new YamlConfiguration();
+            File fallbackFile = new File(plugin.getDataFolder(), fileName + "_fallback.toml");
+            TomlConfiguration fallback = new TomlConfiguration(fallbackFile);
             configCache.put(fileName, fallback);
             return fallback;
         }
@@ -63,19 +63,18 @@ public class DefaultConfigurationService implements ConfigurationService {
     }
 
     @Override
-    public void saveConfiguration(@NotNull String fileName, @NotNull FileConfiguration config) {
+    public void saveConfiguration(@NotNull String fileName, @NotNull TomlConfiguration config) {
         try {
-            File configFile = new File(plugin.getDataFolder(), fileName + ".yml");
-            config.save(configFile);
+            config.save();
             configCache.put(fileName, config);
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Failed to save configuration file: " + fileName + ".yml", e);
+            logger.log(Level.SEVERE, "Failed to save configuration file: " + fileName + ".toml", e);
         }
     }
 
     @Override
     public boolean configExists(@NotNull String fileName) {
-        File configFile = new File(plugin.getDataFolder(), fileName + ".yml");
+        File configFile = new File(plugin.getDataFolder(), fileName + ".toml");
         return configFile.exists();
     }
 

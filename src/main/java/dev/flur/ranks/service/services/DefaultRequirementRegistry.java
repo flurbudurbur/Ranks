@@ -18,8 +18,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.logging.Logger;
-import java.util.HashMap;
-
 import static org.reflections.scanners.Scanners.SubTypes;
 import static org.reflections.scanners.Scanners.TypesAnnotated;
 
@@ -210,29 +208,35 @@ public class DefaultRequirementRegistry implements RequirementDiscovery, Require
         }
     }
 
-    @Override
-    public int getMinParams(@NotNull String name) {
+    @Nullable
+    private RequirementAnnotation getRequirementAnnotation(@NotNull String name) {
         RequirementRecord info = nameRegistry.get(name);
         if (info == null) {
-            return -1;
+            return null;
         }
 
         Class<? extends dev.flur.ranks.requirement.Requirement> clazz = info.requirementClass();
-        RequirementAnnotation paramsAnnotation = clazz.getAnnotation(RequirementAnnotation.class);
-        return paramsAnnotation != null ? paramsAnnotation.minimum() : 0;
+        return clazz.getAnnotation(RequirementAnnotation.class);
+    }
+
+    @Override
+    public int getMinParams(@NotNull String name) {
+        RequirementAnnotation paramsAnnotation = getRequirementAnnotation(name);
+        if (paramsAnnotation == null) {
+            return -1;
+        }
+        return paramsAnnotation.minimum();
     }
 
     @Override
     public int getMaxParams(@NotNull String name) {
-        RequirementRecord info = nameRegistry.get(name);
-        if (info == null) {
+        RequirementAnnotation paramsAnnotation = getRequirementAnnotation(name);
+        if (paramsAnnotation == null) {
             return -1;
         }
-
-        Class<? extends dev.flur.ranks.requirement.Requirement> clazz = info.requirementClass();
-        RequirementAnnotation paramsAnnotation = clazz.getAnnotation(RequirementAnnotation.class);
-        return paramsAnnotation != null ? paramsAnnotation.maximum() : Integer.MAX_VALUE;
+        return paramsAnnotation.maximum();
     }
+
 
     @Override
     @NotNull

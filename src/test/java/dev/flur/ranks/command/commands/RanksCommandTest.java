@@ -122,9 +122,7 @@ class RanksCommandTest {
         // Act & Assert
         // Since the RanksCommand doesn't catch exceptions, we expect the exception to be thrown
         // This is a design choice in the command implementation
-        assertThrows(RuntimeException.class, () -> {
-            ranksCommand.onCommand(sender, command, "ranks", args);
-        });
+        assertThrows(RuntimeException.class, () -> ranksCommand.onCommand(sender, command, "ranks", args));
         verify(ranksService).getAllRanks();
     }
 }

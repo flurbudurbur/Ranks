@@ -6,12 +6,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Represents the outcome of a rankup operation.
  */
-public class RankupOutcome {
-
-    private final Player player;
-    private final String currentRank;
-    private final String targetRank;
-    private final boolean successful;
+public record RankupOutcome(Player player, String currentRank, String targetRank, boolean successful) {
 
     /**
      * Creates a new rankup outcome.
@@ -37,8 +32,9 @@ public class RankupOutcome {
      *
      * @return The player who ranked up
      */
+    @Override
     @NotNull
-    public Player getPlayer() {
+    public Player player() {
         return player;
     }
 
@@ -47,8 +43,9 @@ public class RankupOutcome {
      *
      * @return The player's previous rank
      */
+    @Override
     @NotNull
-    public String getCurrentRank() {
+    public String currentRank() {
         return currentRank;
     }
 
@@ -57,8 +54,9 @@ public class RankupOutcome {
      *
      * @return The player's new rank
      */
+    @Override
     @NotNull
-    public String getTargetRank() {
+    public String targetRank() {
         return targetRank;
     }
 
@@ -67,7 +65,8 @@ public class RankupOutcome {
      *
      * @return True if the rankup was successful, false otherwise
      */
-    public boolean isSuccessful() {
+    @Override
+    public boolean successful() {
         return successful;
     }
 }

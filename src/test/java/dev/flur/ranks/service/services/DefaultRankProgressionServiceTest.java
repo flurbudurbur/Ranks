@@ -1,12 +1,12 @@
 package dev.flur.ranks.service.services;
 
-import dev.flur.ranks.message.Messages;
+import dev.flur.ranks.message.Locale;
 import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.service.MessageService;
 import dev.flur.ranks.service.PermissionService;
 import dev.flur.ranks.service.RequirementValidator;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,7 +23,7 @@ class DefaultRankProgressionServiceTest {
     private PermissionService permissionService;
     private RequirementValidator requirementValidator;
     private MessageService messageService;
-    private FileConfiguration ranksConfig;
+    private TomlConfiguration ranksConfig;
     private Logger logger;
     private Player player;
     private Requirement requirement1;
@@ -37,7 +37,7 @@ class DefaultRankProgressionServiceTest {
         permissionService = mock(PermissionService.class);
         requirementValidator = mock(RequirementValidator.class);
         messageService = mock(MessageService.class);
-        ranksConfig = mock(FileConfiguration.class);
+        ranksConfig = mock(TomlConfiguration.class);
         logger = mock(Logger.class);
         player = mock(Player.class);
         requirement1 = mock(Requirement.class);
@@ -423,7 +423,7 @@ class DefaultRankProgressionServiceTest {
         rankProgressionService.broadcastRankUpgrade(player, currentRank, targetRank);
 
         // Verify
-        verify(messageService).broadcastMessage(Messages.RANKUP_BROADCAST, expectedContext);
+        verify(messageService).broadcastMessage(Locale.RANKUP_BROADCAST, expectedContext);
     }
 
     @Test

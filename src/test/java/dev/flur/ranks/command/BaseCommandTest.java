@@ -2,6 +2,7 @@ package dev.flur.ranks.command;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -12,7 +13,6 @@ import org.mockito.MockitoAnnotations;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class BaseCommandTest {
 
@@ -30,7 +30,7 @@ class BaseCommandTest {
         // Create a concrete implementation of the abstract BaseCommand for testing
         testCommand = new BaseCommand() {
             @Override
-            public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+            public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
                 return true; // Default implementation for testing
             }
         };
@@ -77,12 +77,12 @@ class BaseCommandTest {
             // Arrange
             BaseCommand customCommand = new BaseCommand() {
                 @Override
-                public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+                public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
                     return true;
                 }
                 
                 @Override
-                public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
+                public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
                     return List.of("test", "custom");
                 }
             };

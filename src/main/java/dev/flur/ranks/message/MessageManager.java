@@ -1,6 +1,7 @@
 package dev.flur.ranks.message;
 
 import dev.flur.ranks.Ranks;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
@@ -9,7 +10,6 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -29,10 +29,12 @@ public class MessageManager {
         this.templateProcessor = new TemplateProcessor(plugin);
         this.audiences = BukkitAudiences.create(plugin);
 
-        // Load default locale from config
-        String configLocale = plugin.getConfig().getString("locale", DEFAULT_LOCALE);
+        // Load default locale from TOML config
+        TomlConfiguration mainConfig = configurationService.getConfiguration("config");
+        String configLocale = mainConfig.getString("locale", DEFAULT_LOCALE);
         this.defaultLocale = configLocale.isEmpty() ? DEFAULT_LOCALE : configLocale;
     }
+
 
     /**
      * Reloads all message configurations.
@@ -62,7 +64,7 @@ public class MessageManager {
      * @param context The context variables for templating
      * @return The formatted message as a Component
      */
-    public Component getMessage(Messages message, String locale, Map<String, Object> context) {
+    public Component getMessage(Locale message, String locale, Map<String, Object> context) {
         return getMessage(message.getKey(), locale, context);
     }
 
@@ -73,7 +75,7 @@ public class MessageManager {
      * @param message The message enum
      * @param context The context variables for templating
      */
-    public void sendMessage(@NotNull CommandSender sender, @NotNull Messages message, Map<String, Object> context) {
+    public void sendMessage(@NotNull CommandSender sender, @NotNull Locale message, Map<String, Object> context) {
         String locale = getLocaleForSender(sender);
         Component component = getMessage(message, locale, context);
 
@@ -87,7 +89,7 @@ public class MessageManager {
      * @param sender  The command sender to send the message to
      * @param message The message enum
      */
-    public void sendMessage(@NotNull CommandSender sender, @NotNull Messages message) {
+    public void sendMessage(@NotNull CommandSender sender, @NotNull Locale message) {
         sendMessage(sender, message, new HashMap<>());
     }
 
@@ -97,7 +99,7 @@ public class MessageManager {
      * @param message The message enum
      * @param context The context variables for templating
      */
-    public void broadcastMessage(@NotNull Messages message, Map<String, Object> context) {
+    public void broadcastMessage(@NotNull Locale message, Map<String, Object> context) {
         Component component = getMessage(message, defaultLocale, context);
         Audience audience = audiences.all();
         audience.sendMessage(component);
@@ -108,7 +110,7 @@ public class MessageManager {
      *
      * @param message The message enum
      */
-    public void broadcastMessage(@NotNull Messages message) {
+    public void broadcastMessage(@NotNull Locale message) {
         broadcastMessage(message, new HashMap<>());
     }
 
@@ -121,9 +123,9 @@ public class MessageManager {
     private String getLocaleForSender(@NotNull CommandSender sender) {
         if (sender instanceof Player player) {
             String locale = player.getLocale();
-            if (locale != null && !locale.isEmpty()) {
+            if (!locale.isEmpty()) {
                 // Convert to just the language part (e.g., "en_US" -> "en")
-                return locale.split("_")[0].toLowerCase(Locale.ROOT);
+                return locale.split("_")[0].toLowerCase(java.util.Locale.ROOT);
             }
         }
         return defaultLocale;

@@ -3,13 +3,11 @@ package dev.flur.ranks.service.services;
 import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.service.PermissionService;
 import dev.flur.ranks.service.RequirementValidator;
-import org.bukkit.configuration.file.FileConfiguration;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -21,7 +19,7 @@ class DefaultPlayerRankServiceTest {
 
     private PermissionService permissionService;
     private RequirementValidator requirementValidator;
-    private FileConfiguration ranksConfig;
+    private TomlConfiguration ranksConfig;
     private Logger logger;
     private Player player;
     private Requirement requirement1;
@@ -33,7 +31,7 @@ class DefaultPlayerRankServiceTest {
         // Create mocks
         permissionService = mock(PermissionService.class);
         requirementValidator = mock(RequirementValidator.class);
-        ranksConfig = mock(FileConfiguration.class);
+        ranksConfig = mock(TomlConfiguration.class);
         logger = mock(Logger.class);
         player = mock(Player.class);
         requirement1 = mock(Requirement.class);

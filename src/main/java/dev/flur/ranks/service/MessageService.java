@@ -1,6 +1,6 @@
 package dev.flur.ranks.service;
 
-import dev.flur.ranks.message.Messages;
+import dev.flur.ranks.message.Locale;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +35,7 @@ public interface MessageService {
      * @param context The context variables for templating
      * @return The formatted message as a Component
      */
-    Component getMessage(Messages message, String locale, Map<String, Object> context);
+    Component getMessage(Locale message, String locale, Map<String, Object> context);
 
     /**
      * Sends a message to a command sender.
@@ -44,7 +44,7 @@ public interface MessageService {
      * @param message The message enum
      * @param context The context variables for templating
      */
-    void sendMessage(@NotNull CommandSender sender, @NotNull Messages message, Map<String, Object> context);
+    void sendMessage(@NotNull CommandSender sender, @NotNull Locale message, Map<String, Object> context);
 
     /**
      * Sends a message to a command sender with an empty context.
@@ -52,7 +52,7 @@ public interface MessageService {
      * @param sender  The command sender to send the message to
      * @param message The message enum
      */
-    void sendMessage(@NotNull CommandSender sender, @NotNull Messages message);
+    void sendMessage(@NotNull CommandSender sender, @NotNull Locale message);
 
     /**
      * Broadcasts a message to all players on the server.
@@ -60,14 +60,14 @@ public interface MessageService {
      * @param message The message enum
      * @param context The context variables for templating
      */
-    void broadcastMessage(@NotNull Messages message, Map<String, Object> context);
+    void broadcastMessage(@NotNull Locale message, Map<String, Object> context);
 
     /**
      * Broadcasts a message to all players on the server with an empty context.
      *
      * @param message The message enum
      */
-    void broadcastMessage(@NotNull Messages message);
+    void broadcastMessage(@NotNull Locale message);
 
     /**
      * Shuts down the message service and releases resources.

@@ -5,9 +5,8 @@ import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.requirement.RequirementFactory;
 import dev.flur.ranks.service.ConfigurationService;
 import dev.flur.ranks.service.RanksService;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import net.milkbowl.vault.permission.Permission;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -54,34 +53,32 @@ public class DefaultRanksService implements RanksService {
     public Map<String, String> getNextRanks(@NotNull String currentRank) {
         Map<String, String> nextRanks = new HashMap<>();
 
-        if (!ranksCache.containsKey(currentRank)) {
-            if (plugin.isDebugEnabled()) {
-                logger.warning("Current rank '" + currentRank + "' not found in configuration");
-            }
-            return nextRanks;
-        }
+        // Get the TOML configuration
+        TomlConfiguration ranksConfig = configurationService.getConfiguration("ranks");
 
-        try {
-            FileConfiguration ranksConfig = configurationService.getConfiguration("ranks");
-            String path = ranksCache.get(currentRank);
-            ConfigurationSection section = ranksConfig.getConfigurationSection(path + ".next");
+        // Get the next ranks for the current rank using TOML dot notation
+        String nextRanksPath = "ranks." + currentRank + ".next-ranks";
+        Object nextRanksObject = ranksConfig.get(nextRanksPath);
 
-            if (section == null) {
-                return nextRanks;
-            }
+        return mapNextRanks(nextRanks, nextRanksObject);
+    }
 
-            for (String key : section.getKeys(false)) {
-                String name = section.getString(key);
-                if (name != null && !name.trim().isEmpty()) {
-                    nextRanks.put(key, name);
-                }
+    @NotNull
+    static Map<String, String> mapNextRanks(Map<String, String> nextRanks, Object nextRanksObject) {
+        if (nextRanksObject instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> nextRanksMap = (Map<String, Object>) nextRanksObject;
+
+            for (Map.Entry<String, Object> entry : nextRanksMap.entrySet()) {
+                String rankName = entry.getKey();
+                String displayName = entry.getValue() != null ? entry.getValue().toString() : rankName;
+                nextRanks.put(rankName, displayName);
             }
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to load next ranks for " + currentRank, e);
         }
 
         return nextRanks;
     }
+
 
     @Override
     @NotNull
@@ -99,14 +96,21 @@ public class DefaultRanksService implements RanksService {
                 return requirements;
             }
 
-            FileConfiguration ranksConfig = configurationService.getConfiguration("ranks");
+            TomlConfiguration ranksConfig = configurationService.getConfiguration("ranks");
             String path = ranksCache.get(primaryGroup) + ".next." + nextRank + ".requirements";
 
             if (plugin.isDebugEnabled()) {
                 logger.info("Loading requirements from path: " + path);
             }
 
-            List<String> requirementStrings = ranksConfig.getStringList(path);
+            List<String> requirementStrings;
+            try {
+                requirementStrings = ranksConfig.getStringList(path);
+            } catch (NullPointerException e) {
+                throw new RuntimeException(e);
+            }
+
+            assert requirementStrings != null;
             for (String reqString : requirementStrings) {
                 try {
                     Requirement requirement = requirementFactory.createRequirement(reqString);
@@ -190,7 +194,7 @@ public class DefaultRanksService implements RanksService {
         Map<String, String> ranks = new HashMap<>();
 
         try {
-            FileConfiguration ranksFile = configurationService.getConfiguration("ranks");
+            TomlConfiguration ranksFile = configurationService.getConfiguration("ranks");
 
             for (String key : ranksFile.getKeys(false)) {
                 String name = ranksFile.getString(key + ".name");

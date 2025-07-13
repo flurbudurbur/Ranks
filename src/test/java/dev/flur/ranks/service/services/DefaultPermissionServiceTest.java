@@ -1,6 +1,5 @@
 package dev.flur.ranks.service.services;
 
-import dev.flur.ranks.service.PermissionService;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;

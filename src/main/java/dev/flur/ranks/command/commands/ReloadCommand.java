@@ -3,7 +3,7 @@ package dev.flur.ranks.command.commands;
 import dev.flur.commands.CommandInfo;
 import dev.flur.ranks.Ranks;
 import dev.flur.ranks.command.BaseCommand;
-import dev.flur.ranks.message.Messages;
+import dev.flur.ranks.message.Locale;
 import dev.flur.ranks.service.MessageService;
 import dev.flur.ranks.service.ServiceContainer;
 import org.bukkit.command.Command;
@@ -42,7 +42,7 @@ public class ReloadCommand extends BaseCommand {
             return handleReload(player, fullReload);
         }
 
-        messageService.sendMessage(sender, Messages.NO_PERMISSION);
+        messageService.sendMessage(sender, Locale.NO_PERMISSION);
         return true;
     }
 
@@ -50,7 +50,7 @@ public class ReloadCommand extends BaseCommand {
         if (fullReload) {
             // Reload the plugin's config
             plugin.reloadConfig();
-            messageService.sendMessage(sender, Messages.RELOAD_FULL_COMPLETED);
+            messageService.sendMessage(sender, Locale.RELOAD_FULL_COMPLETED);
         }
 
         // Reload all services through the ServiceContainer
@@ -58,7 +58,7 @@ public class ReloadCommand extends BaseCommand {
 
         if (!serviceContainer.isHealthy()) return false;
 
-        messageService.sendMessage(sender, Messages.RELOAD_COMPLETED);
+        messageService.sendMessage(sender, Locale.RELOAD_COMPLETED);
 
         return true;
     }

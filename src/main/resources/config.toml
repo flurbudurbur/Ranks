@@ -1,0 +1,16 @@
+# No touchie!
+debug = false
+
+[Language]
+default = "en"
+# When true, provides client's locale if available.
+# Example:
+#   Client locale is Spanish -> server privides es.toml if available.
+#   Falls back to default.
+allow-client-locale = false
+
+[General]
+# When true, players who are outside the ranks ladder
+# will be placed into the root rank automatically
+adopt-orphans = false
+notify-update = true

@@ -7,6 +7,7 @@ import dev.flur.ranks.service.ServiceContainer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -96,7 +97,7 @@ class CommandManagerTest {
         }
 
         @Override
-        public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
             return true;
         }
     }

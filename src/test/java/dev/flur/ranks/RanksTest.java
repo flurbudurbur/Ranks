@@ -1,11 +1,11 @@
 package dev.flur.ranks;
 
 import dev.flur.ranks.service.ServiceContainer;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import dev.flur.ranks.vault.VaultProvider;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -19,8 +19,6 @@ import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.atLeastOnce;
 
 class RanksTest {
 
@@ -46,7 +44,7 @@ class RanksTest {
     private Permission permission;
 
     @Mock
-    private FileConfiguration config;
+    private TomlConfiguration config;
 
     @Mock
     private Logger logger;

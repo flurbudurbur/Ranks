@@ -1,5 +1,6 @@
 package dev.flur.ranks.result;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,7 +32,8 @@ public class Result<T> {
      * @param <T>   The type of the success value
      * @return A successful result
      */
-    public static <T> Result<T> success(@NotNull T value) {
+    @Contract(value = "_ -> new", pure = true)
+    public static <T> @NotNull Result<T> success(@NotNull T value) {
         return new Result<>(value, null, true);
     }
 
@@ -42,7 +44,8 @@ public class Result<T> {
      * @param <T>          The type of the success value
      * @return A failure result
      */
-    public static <T> Result<T> failure(@NotNull String errorMessage) {
+    @Contract(value = "_ -> new", pure = true)
+    public static <T> @NotNull Result<T> failure(@NotNull String errorMessage) {
         return new Result<>(null, errorMessage, false);
     }
 

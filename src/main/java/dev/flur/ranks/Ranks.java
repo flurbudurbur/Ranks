@@ -1,10 +1,13 @@
 package dev.flur.ranks;
 
 import dev.flur.ranks.command.CommandManager;
+import dev.flur.ranks.service.ConfigurationService;
 import dev.flur.ranks.service.ServiceContainer;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import dev.flur.ranks.vault.DefaultVaultProvider;
 import dev.flur.ranks.vault.VaultProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 public final class Ranks extends JavaPlugin {
 
@@ -15,23 +18,25 @@ public final class Ranks extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        // Load configuration
-        saveDefaultConfig();
-        debug = getConfig().getBoolean("debug");
+        // Initialize service container
+        serviceContainer = new ServiceContainer(this);
+
+        ConfigurationService configService = serviceContainer.getConfigurationService();
+
+        TomlConfiguration mainConfig = configService.getConfiguration("config");
+        debug = mainConfig.getBoolean("debug", false);
 
         // Initialize core services
         vaultProvider = new DefaultVaultProvider(this);
 
-        // Initialize service container
-        serviceContainer = new ServiceContainer(this);
 
         // Start services
         serviceContainer.start();
 
-        // Initialize command manager with dependency injection
+        // Initialize the command manager
         new CommandManager(this, serviceContainer);
 
-        getLogger().info("Ranks plugin enabled with dependency injection");
+        getLogger().info("Ranks plugin enabled");
     }
 
     @Override
@@ -61,6 +66,16 @@ public final class Ranks extends JavaPlugin {
     public ServiceContainer getServiceContainer() {
         return serviceContainer;
     }
+
+    /**
+     * Gets the main configuration.
+     *
+     * @return The main TomlConfiguration instance
+     */
+    public @NotNull TomlConfiguration getMainConfig() {
+        return serviceContainer.getConfigurationService().getConfiguration("config");
+    }
+
 
     /**
      * Checks if debug mode is enabled.

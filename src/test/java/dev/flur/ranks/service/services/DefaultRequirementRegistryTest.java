@@ -5,6 +5,7 @@ import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
 import dev.flur.ranks.requirement.records.RequirementRecord;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +25,6 @@ class DefaultRequirementRegistryTest {
 
     @RequirementAnnotation(
             name = "test-requirement",
-            minimum = 1,
             maximum = 3,
             usage = "Format: [param1 [param2]] amount"
     )
@@ -34,7 +34,7 @@ class DefaultRequirementRegistryTest {
         }
 
         @Override
-        public boolean meetsRequirement(Player player) {
+        public boolean meetsRequirement(@NotNull Player player) {
             return false;
         }
 
@@ -55,7 +55,7 @@ class DefaultRequirementRegistryTest {
         }
 
         @Override
-        public boolean meetsRequirement(Player player) {
+        public boolean meetsRequirement(@NotNull Player player) {
             return false;
         }
     }
@@ -63,12 +63,12 @@ class DefaultRequirementRegistryTest {
     // This class doesn't extend AnnotatedRequirement
     private static class NonAnnotatedRequirement implements Requirement {
         @Override
-        public boolean meetsRequirement(Player player) {
+        public boolean meetsRequirement(@NotNull Player player) {
             return false;
         }
 
         @Override
-        public void consume(Player player) {
+        public void consume(@NotNull Player player) {
             // Do nothing
         }
     }
@@ -144,7 +144,7 @@ class DefaultRequirementRegistryTest {
 
         // Assert
         assertEquals(1, paramNames.size());
-        assertEquals("test-requirement", paramNames.get(0));
+        assertEquals("test-requirement", paramNames.getFirst());
 
         // Non-existent requirement
         assertTrue(registry.getParamNames("non-existent").isEmpty());

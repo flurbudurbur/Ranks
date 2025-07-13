@@ -38,14 +38,6 @@ public interface RankProgressionService {
     boolean canUpgradeToRank(@NotNull Player player, @NotNull String targetRank);
 
     /**
-     * Gets the cost of upgrading to a specific rank.
-     *
-     * @param targetRank The rank to check
-     * @return The cost of upgrading to the rank, or 0 if there is no cost
-     */
-    double getUpgradeCost(@NotNull String targetRank);
-
-    /**
      * Broadcasts a rank upgrade message.
      *
      * @param player      The player who upgraded

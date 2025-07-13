@@ -2,7 +2,7 @@ package dev.flur.ranks.service.services;
 
 import dev.flur.ranks.Ranks;
 import dev.flur.ranks.message.MessageLoader;
-import dev.flur.ranks.message.Messages;
+import dev.flur.ranks.message.Locale;
 import dev.flur.ranks.message.TemplateProcessor;
 import dev.flur.ranks.service.ConfigurationService;
 import dev.flur.ranks.service.MessageService;
@@ -14,7 +14,6 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -64,12 +63,12 @@ public class DefaultMessageService implements MessageService {
     }
 
     @Override
-    public Component getMessage(Messages message, String locale, Map<String, Object> context) {
+    public Component getMessage(Locale message, String locale, Map<String, Object> context) {
         return getMessage(message.getKey(), locale, context);
     }
 
     @Override
-    public void sendMessage(@NotNull CommandSender sender, @NotNull Messages message, Map<String, Object> context) {
+    public void sendMessage(@NotNull CommandSender sender, @NotNull Locale message, Map<String, Object> context) {
         String locale = getLocaleForSender(sender);
         Component component = getMessage(message, locale, context);
 
@@ -78,19 +77,19 @@ public class DefaultMessageService implements MessageService {
     }
 
     @Override
-    public void sendMessage(@NotNull CommandSender sender, @NotNull Messages message) {
+    public void sendMessage(@NotNull CommandSender sender, @NotNull Locale message) {
         sendMessage(sender, message, new HashMap<>());
     }
 
     @Override
-    public void broadcastMessage(@NotNull Messages message, Map<String, Object> context) {
+    public void broadcastMessage(@NotNull Locale message, Map<String, Object> context) {
         Component component = getMessage(message, defaultLocale, context);
         Audience audience = audiences.all();
         audience.sendMessage(component);
     }
 
     @Override
-    public void broadcastMessage(@NotNull Messages message) {
+    public void broadcastMessage(@NotNull Locale message) {
         broadcastMessage(message, new HashMap<>());
     }
 
@@ -110,9 +109,9 @@ public class DefaultMessageService implements MessageService {
     private String getLocaleForSender(@NotNull CommandSender sender) {
         if (sender instanceof Player player) {
             String locale = player.getLocale();
-            if (locale != null && !locale.isEmpty()) {
+            if (!locale.isEmpty()) {
                 // Convert to just the language part (e.g., "en_US" -> "en")
-                return locale.split("_")[0].toLowerCase(Locale.ROOT);
+                return locale.split("_")[0].toLowerCase(java.util.Locale.ROOT);
             }
         }
         return defaultLocale;

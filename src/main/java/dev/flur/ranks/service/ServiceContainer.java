@@ -1,10 +1,9 @@
 package dev.flur.ranks.service;
 
 import dev.flur.ranks.Ranks;
-import dev.flur.ranks.service.services.DefaultRequirementRegistry;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import dev.flur.ranks.service.services.*;
 import net.milkbowl.vault.permission.Permission;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -95,8 +94,9 @@ public class ServiceContainer implements Lifecycle {
     }
 
     private @NotNull RankProgressionService createRankProgressionService() {
-        FileConfiguration ranksConfig = configurationService.getConfiguration("ranks.yml");
-        boolean broadcastRankups = plugin.getConfig().getBoolean("broadcast-rankups", true);
+        TomlConfiguration ranksConfig = configurationService.getConfiguration("ranks.toml");
+        TomlConfiguration pluginConfig = configurationService.getConfiguration("config.toml");
+        boolean broadcastRankups = pluginConfig.getBoolean("general.broadcast-rankups", true);
         return new DefaultRankProgressionService(
                 permissionService,
                 requirementValidator,
@@ -107,7 +107,7 @@ public class ServiceContainer implements Lifecycle {
     }
 
     private @NotNull PlayerRankService createPlayerRankService() {
-        FileConfiguration ranksConfig = configurationService.getConfiguration("ranks.yml");
+        TomlConfiguration ranksConfig = configurationService.getConfiguration("ranks.toml");
         return new DefaultPlayerRankService(
                 permissionService,
                 requirementValidator,

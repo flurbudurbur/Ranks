@@ -1,7 +1,6 @@
 package dev.flur.ranks.service.services;
 
-import dev.flur.ranks.service.ConfigurationService;
-import org.bukkit.configuration.file.FileConfiguration;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +55,7 @@ class DefaultConfigurationServiceTest {
         void shouldLoadConfigurationFromCache() {
             // Arrange - First call to create cache entry
             String fileName = "config";
-            File configFile = new File(dataFolder, fileName + ".yml");
+            File configFile = new File(dataFolder, fileName + ".toml");
 
             // Create a config file
             try {
@@ -69,7 +68,7 @@ class DefaultConfigurationServiceTest {
             }
 
             // Act - First call loads from file
-            FileConfiguration firstConfig = configService.getConfiguration(fileName);
+            TomlConfiguration firstConfig = configService.getConfiguration(fileName);
 
             // Modify the file to verify we're using cache on second call
             try {
@@ -79,7 +78,7 @@ class DefaultConfigurationServiceTest {
             }
 
             // Act - Second call should use cache
-            FileConfiguration secondConfig = configService.getConfiguration(fileName);
+            TomlConfiguration secondConfig = configService.getConfiguration(fileName);
 
             // Assert
             assertEquals("value", firstConfig.getString("test"));
@@ -95,13 +94,13 @@ class DefaultConfigurationServiceTest {
             String resourceContent = "generated: true";
             InputStream inputStream = new ByteArrayInputStream(resourceContent.getBytes(StandardCharsets.UTF_8));
 
-            when(plugin.getResource(fileName + ".yml")).thenReturn(inputStream);
+            when(plugin.getResource(fileName + ".toml")).thenReturn(inputStream);
 
             // Act
-            FileConfiguration config = configService.getConfiguration(fileName);
+            TomlConfiguration config = configService.getConfiguration(fileName);
 
             // Assert
-            assertTrue(new File(dataFolder, fileName + ".yml").exists());
+            assertTrue(new File(dataFolder, fileName + ".toml").exists());
             verify(logger).info(contains("Generated file"));
         }
 
@@ -110,14 +109,14 @@ class DefaultConfigurationServiceTest {
         void shouldHandleMissingResourceFile() {
             // Arrange
             String fileName = "missing";
-            when(plugin.getResource(fileName + ".yml")).thenReturn(null);
+            when(plugin.getResource(fileName + ".toml")).thenReturn(null);
 
             // Act
-            FileConfiguration config = configService.getConfiguration(fileName);
+            TomlConfiguration config = configService.getConfiguration(fileName);
 
             // Assert
             assertNotNull(config);
-            verify(logger).warning(contains("Resource file '" + fileName + ".yml' not found"));
+            verify(logger).warning(contains("Resource file '" + fileName + ".toml' not found"));
         }
 
         @Test
@@ -125,7 +124,7 @@ class DefaultConfigurationServiceTest {
         void shouldHandleExceptionWhenLoadingConfiguration() throws IOException {
             // Arrange
             String fileName = "invalid";
-            File configFile = new File(dataFolder, fileName + ".yml");
+            File configFile = new File(dataFolder, fileName + ".toml");
 
             // Create an invalid YAML file
             if (!configFile.getParentFile().exists()) {
@@ -139,7 +138,7 @@ class DefaultConfigurationServiceTest {
             when(mockPlugin.getLogger()).thenReturn(logger);
 
             // Act
-            FileConfiguration config = configService.getConfiguration(fileName);
+            TomlConfiguration config = configService.getConfiguration(fileName);
 
             // Assert
             assertNotNull(config);
@@ -156,7 +155,7 @@ class DefaultConfigurationServiceTest {
         void shouldReloadConfigurations() {
             // Arrange
             String fileName = "config";
-            File configFile = new File(dataFolder, fileName + ".yml");
+            File configFile = new File(dataFolder, fileName + ".toml");
 
             // Create a config file
             try {
@@ -169,7 +168,7 @@ class DefaultConfigurationServiceTest {
             }
 
             // Load the configuration to cache it
-            FileConfiguration firstConfig = configService.getConfiguration(fileName);
+            TomlConfiguration firstConfig = configService.getConfiguration(fileName);
 
             // Modify the file
             try {
@@ -180,7 +179,7 @@ class DefaultConfigurationServiceTest {
 
             // Act - Reload configurations
             configService.reloadConfigurations();
-            FileConfiguration reloadedConfig = configService.getConfiguration(fileName);
+            TomlConfiguration reloadedConfig = configService.getConfiguration(fileName);
 
             // Assert
             assertEquals("modified", reloadedConfig.getString("test")); // Should have new value
@@ -192,18 +191,18 @@ class DefaultConfigurationServiceTest {
         void shouldSaveConfiguration() throws IOException {
             // Arrange
             String fileName = "savetest";
-            FileConfiguration config = new YamlConfiguration();
+            TomlConfiguration config = new TomlConfiguration();
             config.set("saved", "value");
 
             // Act
             configService.saveConfiguration(fileName, config);
 
             // Assert
-            File savedFile = new File(dataFolder, fileName + ".yml");
+            File savedFile = new File(dataFolder, fileName + ".toml");
             assertTrue(savedFile.exists());
 
             // Verify content was saved correctly
-            FileConfiguration loadedConfig = YamlConfiguration.loadConfiguration(savedFile);
+            TomlConfiguration loadedConfig = YamlConfiguration.loadConfiguration(savedFile);
             assertEquals("value", loadedConfig.getString("saved"));
         }
 
@@ -212,7 +211,7 @@ class DefaultConfigurationServiceTest {
         void shouldHandleExceptionWhenSavingConfiguration() throws IOException {
             // Arrange
             String fileName = "failsave";
-            FileConfiguration config = mock(FileConfiguration.class);
+            TomlConfiguration config = mock(TomlConfiguration.class);
             doThrow(new IOException("Test exception")).when(config).save(any(File.class));
 
             // Act
@@ -228,7 +227,7 @@ class DefaultConfigurationServiceTest {
         void shouldCheckIfConfigurationExists(boolean exists) {
             // Arrange
             String fileName = "existstest";
-            File configFile = new File(dataFolder, fileName + ".yml");
+            File configFile = new File(dataFolder, fileName + ".toml");
 
             if (exists) {
                 try {
@@ -281,7 +280,7 @@ class DefaultConfigurationServiceTest {
                 DefaultConfigurationService mockedService = new DefaultConfigurationService(mockPlugin);
 
                 // Act
-                FileConfiguration config = mockedService.getConfiguration(fileName);
+                TomlConfiguration config = mockedService.getConfiguration(fileName);
 
                 // Assert
                 assertNotNull(config);
@@ -300,14 +299,14 @@ class DefaultConfigurationServiceTest {
             InputStream mockStream = mock(InputStream.class);
 
             try {
-                when(plugin.getResource(fileName + ".yml")).thenReturn(mockStream);
+                when(plugin.getResource(fileName + ".toml")).thenReturn(mockStream);
                 doThrow(new IOException("Test IO exception")).when(mockStream).close();
             } catch (IOException e) {
                 fail("Mock setup failed", e);
             }
 
             // Act
-            FileConfiguration config = configService.getConfiguration(fileName);
+            TomlConfiguration config = configService.getConfiguration(fileName);
 
             // Assert
             assertNotNull(config);

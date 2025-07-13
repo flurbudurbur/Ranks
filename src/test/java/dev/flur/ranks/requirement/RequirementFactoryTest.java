@@ -1,15 +1,13 @@
 package dev.flur.ranks.requirement;
 
 import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
-import dev.flur.ranks.requirement.records.RequirementRecord;
 import dev.flur.ranks.service.services.DefaultRequirementRegistry;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.function.Function;
 import java.util.logging.Logger;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -21,7 +19,6 @@ class RequirementFactoryTest {
 
     @RequirementAnnotation(
             name = "test-requirement",
-            minimum = 1,
             maximum = 3,
             usage = "Format: [param1 [param2]] amount"
     )
@@ -31,7 +28,7 @@ class RequirementFactoryTest {
         }
 
         @Override
-        public boolean meetsRequirement(Player player) {
+        public boolean meetsRequirement(@NotNull Player player) {
             return false;
         }
 

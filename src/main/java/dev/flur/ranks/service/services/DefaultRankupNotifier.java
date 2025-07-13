@@ -1,6 +1,6 @@
 package dev.flur.ranks.service.services;
 
-import dev.flur.ranks.message.Messages;
+import dev.flur.ranks.message.Locale;
 import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.service.MessageService;
 import dev.flur.ranks.service.RankProgressionService;
@@ -38,42 +38,42 @@ public class DefaultRankupNotifier implements RankupNotifier {
 
     @Override
     public void sendPlayerOnlyMessage(@NotNull CommandSender sender) {
-        messageService.sendMessage(sender, Messages.PLAYER_ONLY);
+        messageService.sendMessage(sender, Locale.PLAYER_ONLY);
     }
 
     @Override
     public void sendErrorMessage(@NotNull Player player, @NotNull String errorMessage) {
-        messageService.sendMessage(player, Messages.ERROR_OCCURRED);
+        messageService.sendMessage(player, Locale.ERROR_OCCURRED);
         logger.severe("Error in rankup command: " + errorMessage);
     }
 
     @Override
     public void sendCurrentRankErrorMessage(@NotNull Player player) {
-        messageService.sendMessage(player, Messages.CURRENT_RANK_ERROR);
+        messageService.sendMessage(player, Locale.CURRENT_RANK_ERROR);
     }
 
     @Override
     public void sendHighestRankMessage(@NotNull Player player) {
-        messageService.sendMessage(player, Messages.HIGHEST_RANK);
+        messageService.sendMessage(player, Locale.HIGHEST_RANK);
     }
 
     @Override
     public void showAvailableRanks(@NotNull Player player, @NotNull Map<String, String> availableRanks) {
-        messageService.sendMessage(player, Messages.MULTIPLE_RANKS);
+        messageService.sendMessage(player, Locale.MULTIPLE_RANKS);
         availableRanks.keySet().forEach(rank -> {
             Map<String, Object> context = new HashMap<>();
             context.put("rank", rank);
-            messageService.sendMessage(player, Messages.RANK_LIST_ITEM, context);
+            messageService.sendMessage(player, Locale.RANK_LIST_ITEM, context);
         });
     }
 
     @Override
     public void showInvalidRankMessage(@NotNull Player player, @NotNull Map<String, String> availableRanks) {
-        messageService.sendMessage(player, Messages.INVALID_RANK);
+        messageService.sendMessage(player, Locale.INVALID_RANK);
         availableRanks.keySet().forEach(rank -> {
             Map<String, Object> context = new HashMap<>();
             context.put("rank", rank);
-            messageService.sendMessage(player, Messages.RANK_LIST_ITEM, context);
+            messageService.sendMessage(player, Locale.RANK_LIST_ITEM, context);
         });
     }
 
@@ -81,22 +81,22 @@ public class DefaultRankupNotifier implements RankupNotifier {
     public void sendRankupSuccessMessage(@NotNull Player player, @NotNull String targetRank) {
         Map<String, Object> context = new HashMap<>();
         context.put("targetRank", targetRank);
-        messageService.sendMessage(player, Messages.RANKUP_SUCCESS, context);
+        messageService.sendMessage(player, Locale.RANKUP_SUCCESS, context);
     }
 
     @Override
     public void sendRankupFailedMessage(@NotNull Player player) {
-        messageService.sendMessage(player, Messages.RANKUP_FAILED);
+        messageService.sendMessage(player, Locale.RANKUP_FAILED);
     }
 
     @Override
     public void notifyUnmetRequirements(@NotNull Player player, @NotNull List<Requirement> unmetRequirements) {
-        messageService.sendMessage(player, Messages.REQUIREMENTS_NOT_MET);
+        messageService.sendMessage(player, Locale.RANKUP_FAILURE);
         unmetRequirements.forEach(req -> {
             String reqName = requirementValidator.getRequirementDescription(req);
             Map<String, Object> context = new HashMap<>();
             context.put("requirement", reqName);
-            messageService.sendMessage(player, Messages.REQUIREMENT_ITEM, context);
+            messageService.sendMessage(player, Locale.REQUIREMENT_ITEM, context);
         });
     }
 

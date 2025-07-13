@@ -1,0 +1,25 @@
+[[rankups]]
+from = "first"
+to = "second"
+requirements = [
+    "money 3000",
+    "xp-level 5"
+]
+
+[[rankups]]
+from = "second"
+to = "third"
+requirements = [
+    "money 5000",
+    "block-break stone granite oak_log 2000"
+]
+
+[[rankups]]
+from = "second"
+to = "fourth"
+requirements = ["money 8000"]
+
+[[rankups]]
+from = "third"
+to = "fourth"
+requirements = ["money 13000"]

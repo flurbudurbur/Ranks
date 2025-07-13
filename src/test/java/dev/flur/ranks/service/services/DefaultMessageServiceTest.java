@@ -1,15 +1,15 @@
 package dev.flur.ranks.service.services;
 
 import dev.flur.ranks.Ranks;
+import dev.flur.ranks.message.Locale;
 import dev.flur.ranks.message.MessageLoader;
-import dev.flur.ranks.message.Messages;
 import dev.flur.ranks.message.TemplateProcessor;
 import dev.flur.ranks.service.ConfigurationService;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +20,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -35,7 +34,7 @@ class DefaultMessageServiceTest {
     private TemplateProcessor templateProcessor;
     private BukkitAudiences audiences;
     private Logger logger;
-    private FileConfiguration config;
+    private TomlConfiguration config;
     private DefaultMessageService messageService;
 
     @BeforeEach
@@ -47,7 +46,7 @@ class DefaultMessageServiceTest {
         templateProcessor = mock(TemplateProcessor.class);
         audiences = mock(BukkitAudiences.class);
         logger = mock(Logger.class);
-        config = mock(FileConfiguration.class);
+        config = mock(TomlConfiguration.class);
 
         // Mock ServiceContainer
         dev.flur.ranks.service.ServiceContainer serviceContainer = mock(dev.flur.ranks.service.ServiceContainer.class);
@@ -151,7 +150,7 @@ class DefaultMessageServiceTest {
         @DisplayName("Should get message by enum")
         void shouldGetMessageByEnum() {
             // Arrange
-            Messages message = mock(Messages.class);
+            Locale message = mock(Locale.class);
             String key = "test.enum.key";
             String locale = "fr";
             Map<String, Object> context = new HashMap<>();
@@ -183,7 +182,7 @@ class DefaultMessageServiceTest {
         void shouldSendMessageToCommandSender() {
             // Arrange
             CommandSender sender = mock(CommandSender.class);
-            Messages message = mock(Messages.class);
+            Locale message = mock(Locale.class);
             Map<String, Object> context = new HashMap<>();
             context.put("param", "value");
 
@@ -212,7 +211,7 @@ class DefaultMessageServiceTest {
         void shouldSendMessageWithEmptyContext() {
             // Arrange
             CommandSender sender = mock(CommandSender.class);
-            Messages message = mock(Messages.class);
+            Locale message = mock(Locale.class);
 
             String key = "test.empty.key";
             when(message.getKey()).thenReturn(key);
@@ -246,7 +245,7 @@ class DefaultMessageServiceTest {
         @DisplayName("Should broadcast message to all players")
         void shouldBroadcastMessageToAllPlayers() {
             // Arrange
-            Messages message = mock(Messages.class);
+            Locale message = mock(Locale.class);
             Map<String, Object> context = new HashMap<>();
             context.put("param", "value");
 
@@ -274,7 +273,7 @@ class DefaultMessageServiceTest {
         @DisplayName("Should broadcast message with empty context")
         void shouldBroadcastMessageWithEmptyContext() {
             // Arrange
-            Messages message = mock(Messages.class);
+            Locale message = mock(Locale.class);
 
             String key = "test.broadcast.empty.key";
             when(message.getKey()).thenReturn(key);
@@ -315,14 +314,14 @@ class DefaultMessageServiceTest {
         void shouldDetectPlayerLocale(String playerLocale) {
             // Arrange
             Player player = mock(Player.class);
-            Messages message = mock(Messages.class);
+            Locale message = mock(Locale.class);
             Map<String, Object> context = new HashMap<>();
 
             String key = "test.locale.key";
             when(message.getKey()).thenReturn(key);
 
             // Player locale should be converted to just the language part
-            String expectedLocale = playerLocale.split("_")[0].toLowerCase(Locale.ROOT);
+            String expectedLocale = playerLocale.split("_")[0].toLowerCase(java.util.Locale.ROOT);
 
             when(player.getLocale()).thenReturn(playerLocale);
 
@@ -351,7 +350,7 @@ class DefaultMessageServiceTest {
         void shouldUseDefaultLocaleForNullPlayerLocale() {
             // Arrange
             Player player = mock(Player.class);
-            Messages message = mock(Messages.class);
+            Locale message = mock(Locale.class);
             Map<String, Object> context = new HashMap<>();
 
             String key = "test.null.locale.key";
@@ -384,7 +383,7 @@ class DefaultMessageServiceTest {
         void shouldUseDefaultLocaleForEmptyPlayerLocale() {
             // Arrange
             Player player = mock(Player.class);
-            Messages message = mock(Messages.class);
+            Locale message = mock(Locale.class);
             Map<String, Object> context = new HashMap<>();
 
             String key = "test.empty.locale.key";
@@ -444,7 +443,7 @@ class DefaultMessageServiceTest {
             };
 
             // Act & Assert - Should not throw exception
-            assertDoesNotThrow(() -> serviceWithNullAudiences.shutdown());
+            assertDoesNotThrow(serviceWithNullAudiences::shutdown);
         }
     }
 }

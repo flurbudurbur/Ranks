@@ -42,7 +42,7 @@ public class TemplateProcessor {
         // Create base file loader
         FileLoader fileLoader = new FileLoader();
         fileLoader.setPrefix(localeDir.getAbsolutePath());
-        fileLoader.setSuffix(".yml");
+        fileLoader.setSuffix(".toml");
 
         // Wrap with custom syntax loader
         RanksSyntaxLoader syntaxLoader = new RanksSyntaxLoader(fileLoader);

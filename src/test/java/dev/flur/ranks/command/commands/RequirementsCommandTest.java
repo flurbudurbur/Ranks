@@ -46,8 +46,8 @@ class RequirementsCommandTest {
     private Requirement requirement2;
 
     private RequirementsCommand requirementsCommand;
-    private String[] emptyArgs = new String[0];
-    private String[] validArgs = new String[]{"next-rank"};
+    private final String[] emptyArgs = new String[0];
+    private final String[] validArgs = new String[]{"next-rank"};
 
     @BeforeEach
     void setUp() {
@@ -227,9 +227,7 @@ class RequirementsCommandTest {
 
             // Act & Assert
             // Since the RequirementsCommand doesn't catch exceptions in onTabComplete, we expect the exception to be thrown
-            assertThrows(RuntimeException.class, () -> {
-                requirementsCommand.onTabComplete(player, command, "requirements", emptyArgs);
-            });
+            assertThrows(RuntimeException.class, () -> requirementsCommand.onTabComplete(player, command, "requirements", emptyArgs));
             verify(ranksService).getCurrentRank(player);
         }
     }

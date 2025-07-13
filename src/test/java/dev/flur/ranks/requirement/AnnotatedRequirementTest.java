@@ -2,6 +2,7 @@ package dev.flur.ranks.requirement;
 
 import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -23,7 +24,7 @@ class AnnotatedRequirementTest {
         }
 
         @Override
-        public boolean meetsRequirement(Player player) {
+        public boolean meetsRequirement(@NotNull Player player) {
             return false;
         }
 

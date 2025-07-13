@@ -1,11 +1,10 @@
 package dev.flur.ranks.command.commands;
 
 import dev.flur.ranks.Ranks;
-import dev.flur.ranks.message.Messages;
+import dev.flur.ranks.message.Locale;
 import dev.flur.ranks.service.MessageService;
 import dev.flur.ranks.service.ServiceContainer;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,8 +38,8 @@ class ReloadCommandTest {
     private ConsoleCommandSender consoleSender;
 
     private ReloadCommand reloadCommand;
-    private String[] emptyArgs = new String[0];
-    private String[] fullReloadArgs = new String[]{"full"};
+    private final String[] emptyArgs = new String[0];
+    private final String[] fullReloadArgs = new String[]{"full"};
 
     @BeforeEach
     void setUp() {
@@ -65,7 +64,7 @@ class ReloadCommandTest {
 
             // Assert
             assertTrue(result, "Command should return true for player without permission");
-            verify(messageService).sendMessage(player, Messages.NO_PERMISSION);
+            verify(messageService).sendMessage(player, Locale.NO_PERMISSION);
             verifyNoMoreInteractions(plugin, serviceContainer);
         }
 
@@ -82,7 +81,7 @@ class ReloadCommandTest {
             assertTrue(result, "Command should return true for player with permission");
             verify(serviceContainer).reload();
             verify(serviceContainer).isHealthy();
-            verify(messageService).sendMessage(player, Messages.RELOAD_COMPLETED);
+            verify(messageService).sendMessage(player, Locale.RELOAD_COMPLETED);
         }
 
         @Test
@@ -98,7 +97,7 @@ class ReloadCommandTest {
             assertTrue(result, "Command should return true for console sender");
             verify(serviceContainer).reload();
             verify(serviceContainer).isHealthy();
-            verify(messageService).sendMessage(consoleSender, Messages.RELOAD_COMPLETED);
+            verify(messageService).sendMessage(consoleSender, Locale.RELOAD_COMPLETED);
         }
     }
 
@@ -118,7 +117,7 @@ class ReloadCommandTest {
             assertTrue(result, "Command should return true for regular reload");
             verify(serviceContainer).reload();
             verify(serviceContainer).isHealthy();
-            verify(messageService).sendMessage(player, Messages.RELOAD_COMPLETED);
+            verify(messageService).sendMessage(player, Locale.RELOAD_COMPLETED);
             verify(plugin, never()).reloadConfig();
         }
 
@@ -135,7 +134,7 @@ class ReloadCommandTest {
             assertFalse(result, "Command should return false when service container is not healthy");
             verify(serviceContainer).reload();
             verify(serviceContainer).isHealthy();
-            verify(messageService, never()).sendMessage(player, Messages.RELOAD_COMPLETED);
+            verify(messageService, never()).sendMessage(player, Locale.RELOAD_COMPLETED);
         }
     }
 
@@ -156,8 +155,8 @@ class ReloadCommandTest {
             verify(plugin).reloadConfig();
             verify(serviceContainer).reload();
             verify(serviceContainer).isHealthy();
-            verify(messageService).sendMessage(player, Messages.RELOAD_FULL_COMPLETED);
-            verify(messageService).sendMessage(player, Messages.RELOAD_COMPLETED);
+            verify(messageService).sendMessage(player, Locale.RELOAD_FULL_COMPLETED);
+            verify(messageService).sendMessage(player, Locale.RELOAD_COMPLETED);
         }
 
         @Test
@@ -174,8 +173,8 @@ class ReloadCommandTest {
             verify(plugin).reloadConfig();
             verify(serviceContainer).reload();
             verify(serviceContainer).isHealthy();
-            verify(messageService).sendMessage(player, Messages.RELOAD_FULL_COMPLETED);
-            verify(messageService, never()).sendMessage(player, Messages.RELOAD_COMPLETED);
+            verify(messageService).sendMessage(player, Locale.RELOAD_FULL_COMPLETED);
+            verify(messageService, never()).sendMessage(player, Locale.RELOAD_COMPLETED);
         }
 
         @Test
@@ -193,8 +192,8 @@ class ReloadCommandTest {
             verify(plugin).reloadConfig();
             verify(serviceContainer).reload();
             verify(serviceContainer).isHealthy();
-            verify(messageService).sendMessage(player, Messages.RELOAD_FULL_COMPLETED);
-            verify(messageService).sendMessage(player, Messages.RELOAD_COMPLETED);
+            verify(messageService).sendMessage(player, Locale.RELOAD_FULL_COMPLETED);
+            verify(messageService).sendMessage(player, Locale.RELOAD_COMPLETED);
         }
     }
 }

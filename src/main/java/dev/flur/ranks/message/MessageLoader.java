@@ -2,7 +2,6 @@ package dev.flur.ranks.message;
 
 import dev.flur.ranks.Ranks;
 import dev.flur.ranks.service.ConfigurationService;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -48,40 +47,13 @@ public class MessageLoader {
      * @param locale The locale code to load
      */
     private void loadLocale(@NotNull String locale) {
-        FileConfiguration localeConfig = configurationService.getConfiguration("locale/" + locale);
+        configurationService.getConfiguration("locale/" + locale);
         Map<String, String> messages = new HashMap<>();
-
-        // Flatten the configuration to get all message keys
-        flattenConfig(localeConfig, "", messages);
 
         localeMessages.put(locale.toLowerCase(), messages);
 
         if (plugin.isDebugEnabled()) {
             plugin.getLogger().info("Loaded " + messages.size() + " messages for locale: " + locale);
-        }
-    }
-
-    /**
-     * Flattens a nested configuration into a map with dot-separated keys.
-     *
-     * @param config The configuration to flatten
-     * @param prefix The current key prefix
-     * @param result The map to store results in
-     */
-    private void flattenConfig(org.bukkit.configuration.ConfigurationSection config, String prefix, Map<String, String> result) {
-        if (config == null) return;
-
-        for (String key : config.getKeys(false)) {
-            String fullKey = prefix.isEmpty() ? key : prefix + "." + key;
-
-            if (config.isConfigurationSection(key)) {
-                flattenConfig(config.getConfigurationSection(key), fullKey, result);
-            } else {
-                String value = config.getString(key);
-                if (value != null) {
-                    result.put(fullKey, value);
-                }
-            }
         }
     }
 

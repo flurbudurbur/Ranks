@@ -4,7 +4,7 @@ import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.service.PermissionService;
 import dev.flur.ranks.service.PlayerRankService;
 import dev.flur.ranks.service.RequirementValidator;
-import org.bukkit.configuration.file.FileConfiguration;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,13 +21,13 @@ public class DefaultPlayerRankService implements PlayerRankService {
 
     private final PermissionService permissionService;
     private final RequirementValidator requirementValidator;
-    private final FileConfiguration ranksConfig;
+    private final TomlConfiguration ranksConfig;
     private final Logger logger;
 
     public DefaultPlayerRankService(
             @NotNull PermissionService permissionService,
             @NotNull RequirementValidator requirementValidator,
-            @NotNull FileConfiguration ranksConfig,
+            @NotNull TomlConfiguration ranksConfig,
             @NotNull Logger logger) {
         this.permissionService = permissionService;
         this.requirementValidator = requirementValidator;
@@ -39,8 +39,7 @@ public class DefaultPlayerRankService implements PlayerRankService {
     @NotNull
     public String getCurrentRank(@NotNull Player player) {
         try {
-            String group = permissionService.getPrimaryGroup(player);
-            return group != null ? group : "";
+            return permissionService.getPrimaryGroup(player);
         } catch (Exception e) {
             logger.severe("Failed to get current rank for player " + player.getName() + ": " + e.getMessage());
             return "";

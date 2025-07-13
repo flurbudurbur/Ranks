@@ -1,11 +1,11 @@
 package dev.flur.ranks;
 
 import dev.flur.ranks.service.ServiceContainer;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import dev.flur.ranks.vault.TestableVaultProvider;
 import dev.flur.ranks.vault.VaultProvider;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.mockito.Mockito;
 
 import java.util.logging.Logger;
@@ -19,8 +19,8 @@ public class TestableRanks {
     private VaultProvider vaultProvider;
     private ServiceContainer serviceContainer;
     private boolean debug = false;
-    private FileConfiguration config;
-    private Logger logger;
+    private final TomlConfiguration config;
+    private final Logger logger;
 
     /**
      * Creates a new TestableRanks instance with the given configuration and logger.
@@ -28,7 +28,7 @@ public class TestableRanks {
      * @param config The configuration to use
      * @param logger The logger to use
      */
-    public TestableRanks(FileConfiguration config, Logger logger) {
+    public TestableRanks(TomlConfiguration config, Logger logger) {
         this.config = config;
         this.logger = logger;
     }

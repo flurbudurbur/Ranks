@@ -1,13 +1,12 @@
 package dev.flur.ranks.service.services;
 
-import dev.flur.ranks.message.Messages;
+import dev.flur.ranks.message.Locale;
 import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.service.MessageService;
 import dev.flur.ranks.service.PermissionService;
 import dev.flur.ranks.service.RankProgressionService;
 import dev.flur.ranks.service.RequirementValidator;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,6 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+
+import static dev.flur.ranks.service.services.DefaultRanksService.mapNextRanks;
 
 /**
  * Default implementation of the RankProgressionService interface.
@@ -24,7 +25,7 @@ public class DefaultRankProgressionService implements RankProgressionService {
     private final PermissionService permissionService;
     private final RequirementValidator requirementValidator;
     private final MessageService messageService;
-    private final FileConfiguration ranksConfig;
+    private final TomlConfiguration ranksConfig;
     private final Logger logger;
     private final boolean broadcastRankups;
 
@@ -32,7 +33,7 @@ public class DefaultRankProgressionService implements RankProgressionService {
             @NotNull PermissionService permissionService,
             @NotNull RequirementValidator requirementValidator,
             @NotNull MessageService messageService,
-            @NotNull FileConfiguration ranksConfig,
+            @NotNull TomlConfiguration ranksConfig,
             @NotNull Logger logger,
             boolean broadcastRankups) {
         this.permissionService = permissionService;
@@ -61,8 +62,6 @@ public class DefaultRankProgressionService implements RankProgressionService {
             boolean success = permissionService.addToGroup(player, targetRank);
 
             if (success) {
-                // Handle economy cost if applicable
-                double cost = getUpgradeCost(targetRank);
                 // Economy handling would go here if implemented
 
                 logger.info("Player " + player.getName() + " upgraded from " + currentRank + " to " + targetRank);
@@ -87,28 +86,11 @@ public class DefaultRankProgressionService implements RankProgressionService {
         String currentRank = permissionService.getPrimaryGroup(player);
         Map<String, String> availableRanks = new HashMap<>();
 
-        ConfigurationSection ranksSection = ranksConfig.getConfigurationSection("ranks");
-        if (ranksSection == null) {
-            return availableRanks;
-        }
-
-        ConfigurationSection currentRankSection = ranksSection.getConfigurationSection(currentRank);
-        if (currentRankSection == null) {
-            return availableRanks;
-        }
-
-        ConfigurationSection nextRanksSection = currentRankSection.getConfigurationSection("next-ranks");
-        if (nextRanksSection == null) {
-            return availableRanks;
-        }
-
-        for (String nextRank : nextRanksSection.getKeys(false)) {
-            String displayName = nextRanksSection.getString(nextRank, nextRank);
-            availableRanks.put(nextRank, displayName);
-        }
-
-        return availableRanks;
+        // Use TOML configuration instead of ConfigurationSection
+        Object ranksObject = ranksConfig.get("ranks." + currentRank + ".next-ranks");
+        return mapNextRanks(availableRanks, ranksObject);
     }
+
 
     @Override
     public boolean canUpgradeToRank(@NotNull Player player, @NotNull String targetRank) {
@@ -131,21 +113,6 @@ public class DefaultRankProgressionService implements RankProgressionService {
     }
 
     @Override
-    public double getUpgradeCost(@NotNull String targetRank) {
-        ConfigurationSection ranksSection = ranksConfig.getConfigurationSection("ranks");
-        if (ranksSection == null) {
-            return 0;
-        }
-
-        ConfigurationSection rankSection = ranksSection.getConfigurationSection(targetRank);
-        if (rankSection == null) {
-            return 0;
-        }
-
-        return rankSection.getDouble("cost", 0);
-    }
-
-    @Override
     public void broadcastRankUpgrade(@NotNull Player player, @NotNull String currentRank, @NotNull String targetRank) {
         if (!broadcastRankups) {
             return;
@@ -155,7 +122,7 @@ public class DefaultRankProgressionService implements RankProgressionService {
         context.put("playerName", player.getName());
         context.put("currentRank", currentRank);
         context.put("targetRank", targetRank);
-        messageService.broadcastMessage(Messages.RANKUP_BROADCAST, context);
+        messageService.broadcastMessage(Locale.RANKUP_BROADCAST, context);
     }
 
     /**

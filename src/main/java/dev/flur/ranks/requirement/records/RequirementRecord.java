@@ -11,15 +11,6 @@ public record RequirementRecord(String name, Function<String[], Requirement> con
     public RequirementRecord(@NotNull String name,
                              @NotNull Function<String[], Requirement> constructor,
                              @NotNull Class<? extends Requirement> requirementClass) {
-        if (name == null) {
-            throw new IllegalArgumentException("Name cannot be null");
-        }
-        if (constructor == null) {
-            throw new IllegalArgumentException("Constructor cannot be null");
-        }
-        if (requirementClass == null) {
-            throw new IllegalArgumentException("Requirement class cannot be null");
-        }
         this.name = name;
         this.constructor = constructor;
         this.requirementClass = requirementClass;

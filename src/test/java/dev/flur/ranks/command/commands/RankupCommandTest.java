@@ -49,7 +49,7 @@ class RankupCommandTest {
     private CommandSender nonPlayerSender;
 
     private RankupCommand rankupCommand;
-    private String[] emptyArgs = new String[0];
+    private final String[] emptyArgs = new String[0];
 
     @BeforeEach
     void setUp() {

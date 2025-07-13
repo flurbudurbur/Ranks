@@ -1,12 +1,12 @@
 package dev.flur.ranks.service;
 
 import dev.flur.ranks.Ranks;
+import dev.flur.ranks.service.config.TomlConfiguration;
 import dev.flur.ranks.vault.VaultProvider;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
 import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,10 +35,10 @@ class ServiceContainerTest {
     private Economy economy;
 
     @Mock
-    private FileConfiguration config;
+    private TomlConfiguration config;
 
     @Mock
-    private FileConfiguration ranksConfig;
+    private TomlConfiguration ranksConfig;
 
     @Mock
     private Logger logger;
