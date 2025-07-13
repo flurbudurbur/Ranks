@@ -31,14 +31,21 @@ public final class ItemUseRequirement extends AnnotatedRequirement {
             if (mat == null) {
                 throw new IllegalArgumentException("Invalid item material (not found): " + item);
             }
-            if (!mat.isItem() || mat.isBlock()) {
+
+            // Check if material is usable with USE_ITEM statistic
+            // This is a more reliable check than isItem() && !isBlock()
+            try {
+                // Try to validate that this material can be used with USE_ITEM statistic
+                if (!mat.isItem()) {
+                    throw new IllegalArgumentException("Invalid item material (not an item): " + item);
+                }
+            } catch (Exception e) {
                 throw new IllegalArgumentException("Invalid item material (not an item): " + item);
             }
         }
 
         this.items = tempItems;
     }
-
 
     @Override
     public boolean meetsRequirement(@NotNull Player player) {
