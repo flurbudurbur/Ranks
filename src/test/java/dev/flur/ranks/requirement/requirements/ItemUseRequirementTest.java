@@ -3,10 +3,12 @@ package dev.flur.ranks.requirement.requirements;
 import org.bukkit.Material;
 import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockbukkit.mockbukkit.MockBukkit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -17,26 +19,35 @@ class ItemUseRequirementTest {
 
     @BeforeEach
     void setUp() {
+        // Initialize MockBukkit server
+        MockBukkit.mock();
+
         // Create mocks
         mockPlayer = mock(Player.class);
+    }
+
+    @AfterEach
+    void tearDown() {
+        // Clean up MockBukkit
+        MockBukkit.unmock();
     }
 
     @Test
     void testConstructor_ValidParams() {
         // Arrange
         String[] params = {"DIAMOND_SWORD", "100"};
-        when(mockPlayer.getStatistic(Statistic.USE_ITEM, Material.DIAMOND_SWORD)).thenReturn(100); // Exact amount
+        when(mockPlayer.getStatistic(Statistic.USE_ITEM, Material.DIAMOND_SWORD)).thenReturn(100);
 
         // Act
         ItemUseRequirement requirement = new ItemUseRequirement(params);
 
-        // Assert - Verify indirectly through meetsRequirement
+        // Assert
         assertTrue(requirement.meetsRequirement(mockPlayer));
-        
+
         // Also verify with more uses
         when(mockPlayer.getStatistic(Statistic.USE_ITEM, Material.DIAMOND_SWORD)).thenReturn(150);
         assertTrue(requirement.meetsRequirement(mockPlayer));
-        
+
         // And verify with fewer uses
         when(mockPlayer.getStatistic(Statistic.USE_ITEM, Material.DIAMOND_SWORD)).thenReturn(99);
         assertFalse(requirement.meetsRequirement(mockPlayer));
