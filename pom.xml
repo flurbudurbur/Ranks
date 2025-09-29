@@ -77,7 +77,7 @@
         <dependency>
             <groupId>org.mockbukkit.mockbukkit</groupId>
             <artifactId>mockbukkit-v1.21</artifactId>
-            <version>4.68.0</version>
+            <version>4.77.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
