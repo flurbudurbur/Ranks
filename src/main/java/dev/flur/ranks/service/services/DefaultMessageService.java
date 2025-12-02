@@ -1,11 +1,10 @@
 package dev.flur.ranks.service.services;
 
 import dev.flur.ranks.Ranks;
-import dev.flur.ranks.message.MessageLoader;
 import dev.flur.ranks.message.Messages;
-import dev.flur.ranks.message.TemplateProcessor;
-import dev.flur.ranks.service.ConfigurationService;
+import dev.flur.ranks.result.Result;
 import dev.flur.ranks.service.MessageService;
+import dev.flur.ranks.template.service.TemplateService;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
@@ -20,30 +19,27 @@ import java.util.logging.Logger;
 
 /**
  * Default implementation of the MessageService interface.
+ * Delegates template rendering to TemplateService while managing message delivery via BukkitAudiences.
  */
 public class DefaultMessageService implements MessageService {
     private static final String DEFAULT_LOCALE = "en";
 
-    private final MessageLoader messageLoader;
-    private final TemplateProcessor templateProcessor;
+    private final TemplateService templateService;
     private final BukkitAudiences audiences;
     private final String defaultLocale;
     private final Logger logger;
 
-    public DefaultMessageService(@NotNull Ranks plugin, @NotNull ConfigurationService configurationService) {
-        this(plugin, configurationService, BukkitAudiences.create(plugin));
-    }
-
     /**
-     * Constructor with injectable BukkitAudiences for testing.
+     * Constructor with injectable dependencies for testing.
      *
-     * @param plugin The plugin instance
-     * @param configurationService The configuration service
-     * @param audiences The BukkitAudiences instance
+     * @param plugin          The plugin instance
+     * @param templateService The template service for rendering messages
+     * @param audiences       The BukkitAudiences instance for message delivery
      */
-    public DefaultMessageService(@NotNull Ranks plugin, @NotNull ConfigurationService configurationService, @NotNull BukkitAudiences audiences) {
-        this.messageLoader = new MessageLoader(plugin, configurationService);
-        this.templateProcessor = new TemplateProcessor(plugin);
+    public DefaultMessageService(@NotNull Ranks plugin,
+                                 @NotNull TemplateService templateService,
+                                 @NotNull BukkitAudiences audiences) {
+        this.templateService = templateService;
         this.audiences = audiences;
         this.logger = plugin.getLogger();
 
@@ -54,13 +50,17 @@ public class DefaultMessageService implements MessageService {
 
     @Override
     public void reload() {
-        messageLoader.loadLocales();
+        templateService.reload();
     }
 
     @Override
     public Component getMessage(String key, String locale, Map<String, Object> context) {
-        String rawTemplate = messageLoader.getRawMessage(key, locale, defaultLocale);
-        return templateProcessor.processTemplate(rawTemplate, context);
+        Result<Component> result = templateService.renderMessage(key, locale, context);
+        if (result.isSuccess()) {
+            return result.getValue();
+        }
+        logger.warning("Failed to render message '" + key + "': " + result.getErrorMessage());
+        return Component.text("Missing: " + key);
     }
 
     @Override
@@ -109,10 +109,9 @@ public class DefaultMessageService implements MessageService {
      */
     private String getLocaleForSender(@NotNull CommandSender sender) {
         if (sender instanceof Player player) {
-            String locale = player.getLocale();
-            if (locale != null && !locale.isEmpty()) {
-                // Convert to just the language part (e.g., "en_US" -> "en")
-                return locale.split("_")[0].toLowerCase(Locale.ROOT);
+            Locale locale = player.locale();
+            if (locale != null) {
+                return locale.getLanguage();
             }
         }
         return defaultLocale;

@@ -1,10 +1,9 @@
 package dev.flur.ranks.service.services;
 
 import dev.flur.ranks.Ranks;
-import dev.flur.ranks.message.MessageLoader;
 import dev.flur.ranks.message.Messages;
-import dev.flur.ranks.message.TemplateProcessor;
-import dev.flur.ranks.service.ConfigurationService;
+import dev.flur.ranks.result.Result;
+import dev.flur.ranks.template.service.TemplateService;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
@@ -15,8 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
 import java.util.HashMap;
@@ -30,9 +27,7 @@ import static org.mockito.Mockito.*;
 class DefaultMessageServiceTest {
 
     private Ranks plugin;
-    private ConfigurationService configService;
-    private MessageLoader messageLoader;
-    private TemplateProcessor templateProcessor;
+    private TemplateService templateService;
     private BukkitAudiences audiences;
     private Logger logger;
     private FileConfiguration config;
@@ -42,41 +37,10 @@ class DefaultMessageServiceTest {
     void setUp() {
         // Mock dependencies
         plugin = mock(Ranks.class);
-        configService = mock(ConfigurationService.class);
-        messageLoader = mock(MessageLoader.class);
-        templateProcessor = mock(TemplateProcessor.class);
+        templateService = mock(TemplateService.class);
         audiences = mock(BukkitAudiences.class);
         logger = mock(Logger.class);
         config = mock(FileConfiguration.class);
-
-        // Mock ServiceContainer
-        dev.flur.ranks.service.ServiceContainer serviceContainer = mock(dev.flur.ranks.service.ServiceContainer.class);
-        when(serviceContainer.getConfigurationService()).thenReturn(configService);
-        when(plugin.getServiceContainer()).thenReturn(serviceContainer);
-
-        // Mock PluginDescriptionFile
-        org.bukkit.plugin.PluginDescriptionFile descriptionFile = mock(org.bukkit.plugin.PluginDescriptionFile.class);
-        when(descriptionFile.getName()).thenReturn("Ranks");
-        when(plugin.getDescription()).thenReturn(descriptionFile);
-
-        // Mock Server, PluginManager, and ConsoleSender
-        org.bukkit.Server server = mock(org.bukkit.Server.class);
-        org.bukkit.command.ConsoleCommandSender consoleSender = mock(org.bukkit.command.ConsoleCommandSender.class);
-        org.bukkit.plugin.PluginManager pluginManager = mock(org.bukkit.plugin.PluginManager.class);
-
-        when(server.getConsoleSender()).thenReturn(consoleSender);
-        when(server.getPluginManager()).thenReturn(pluginManager);
-        when(plugin.getServer()).thenReturn(server);
-
-        // Allow any event registration
-        doNothing().when(pluginManager).registerEvent(
-            any(Class.class), 
-            any(org.bukkit.event.Listener.class), 
-            any(org.bukkit.event.EventPriority.class), 
-            any(org.bukkit.plugin.EventExecutor.class), 
-            any(org.bukkit.plugin.Plugin.class), 
-            anyBoolean()
-        );
 
         // Set up plugin mocks
         when(plugin.getLogger()).thenReturn(logger);
@@ -85,28 +49,8 @@ class DefaultMessageServiceTest {
         // Set up config mock
         when(config.getString(eq("locale"), anyString())).thenReturn("en");
 
-        // Create service with constructor injection for testing
-        messageService = new DefaultMessageService(plugin, configService) {
-            // Override constructor-initialized fields for testing
-            {
-                try {
-                    // Use reflection to set private fields
-                    java.lang.reflect.Field loaderField = DefaultMessageService.class.getDeclaredField("messageLoader");
-                    loaderField.setAccessible(true);
-                    loaderField.set(this, messageLoader);
-
-                    java.lang.reflect.Field processorField = DefaultMessageService.class.getDeclaredField("templateProcessor");
-                    processorField.setAccessible(true);
-                    processorField.set(this, templateProcessor);
-
-                    java.lang.reflect.Field audiencesField = DefaultMessageService.class.getDeclaredField("audiences");
-                    audiencesField.setAccessible(true);
-                    audiencesField.set(this, audiences);
-                } catch (Exception e) {
-                    throw new RuntimeException("Failed to set up test", e);
-                }
-            }
-        };
+        // Create service
+        messageService = new DefaultMessageService(plugin, templateService, audiences);
     }
 
     @Nested
@@ -114,13 +58,13 @@ class DefaultMessageServiceTest {
     class MessageLoadingTests {
 
         @Test
-        @DisplayName("Should reload messages")
+        @DisplayName("Should reload via template service")
         void shouldReloadMessages() {
             // Act
             messageService.reload();
 
             // Assert
-            verify(messageLoader).loadLocales();
+            verify(templateService).reload();
         }
 
         @Test
@@ -132,19 +76,16 @@ class DefaultMessageServiceTest {
             Map<String, Object> context = new HashMap<>();
             context.put("param", "value");
 
-            String rawMessage = "Test message with {{ param }}";
             Component expectedComponent = Component.text("Test message with value");
-
-            when(messageLoader.getRawMessage(key, locale, "en")).thenReturn(rawMessage);
-            when(templateProcessor.processTemplate(rawMessage, context)).thenReturn(expectedComponent);
+            when(templateService.renderMessage(key, locale, context))
+                    .thenReturn(Result.success(expectedComponent));
 
             // Act
             Component result = messageService.getMessage(key, locale, context);
 
             // Assert
-            assertSame(expectedComponent, result);
-            verify(messageLoader).getRawMessage(key, locale, "en");
-            verify(templateProcessor).processTemplate(rawMessage, context);
+            assertEquals(expectedComponent, result);
+            verify(templateService).renderMessage(key, locale, context);
         }
 
         @Test
@@ -157,20 +98,36 @@ class DefaultMessageServiceTest {
             Map<String, Object> context = new HashMap<>();
 
             when(message.getKey()).thenReturn(key);
-            String rawMessage = "Message from enum";
             Component expectedComponent = Component.text("Message from enum");
-
-            when(messageLoader.getRawMessage(key, locale, "en")).thenReturn(rawMessage);
-            when(templateProcessor.processTemplate(rawMessage, context)).thenReturn(expectedComponent);
+            when(templateService.renderMessage(key, locale, context))
+                    .thenReturn(Result.success(expectedComponent));
 
             // Act
             Component result = messageService.getMessage(message, locale, context);
 
             // Assert
-            assertSame(expectedComponent, result);
+            assertEquals(expectedComponent, result);
             verify(message).getKey();
-            verify(messageLoader).getRawMessage(key, locale, "en");
-            verify(templateProcessor).processTemplate(rawMessage, context);
+            verify(templateService).renderMessage(key, locale, context);
+        }
+
+        @Test
+        @DisplayName("Should return fallback for failed render")
+        void shouldReturnFallbackForFailedRender() {
+            // Arrange
+            String key = "missing.key";
+            String locale = "en";
+            Map<String, Object> context = new HashMap<>();
+
+            when(templateService.renderMessage(key, locale, context))
+                    .thenReturn(Result.failure("Message not found"));
+
+            // Act
+            Component result = messageService.getMessage(key, locale, context);
+
+            // Assert
+            assertNotNull(result);
+            verify(logger).warning(contains("missing.key"));
         }
     }
 
@@ -190,11 +147,9 @@ class DefaultMessageServiceTest {
             String key = "test.sender.key";
             when(message.getKey()).thenReturn(key);
 
-            String rawMessage = "Message to sender with {{ param }}";
             Component expectedComponent = Component.text("Message to sender with value");
-
-            when(messageLoader.getRawMessage(key, "en", "en")).thenReturn(rawMessage);
-            when(templateProcessor.processTemplate(rawMessage, context)).thenReturn(expectedComponent);
+            when(templateService.renderMessage(eq(key), eq("en"), eq(context)))
+                    .thenReturn(Result.success(expectedComponent));
 
             Audience senderAudience = mock(Audience.class);
             when(audiences.sender(sender)).thenReturn(senderAudience);
@@ -217,14 +172,12 @@ class DefaultMessageServiceTest {
             String key = "test.empty.key";
             when(message.getKey()).thenReturn(key);
 
-            String rawMessage = "Message with empty context";
             Component expectedComponent = Component.text("Message with empty context");
 
             // Capture the context argument
             ArgumentCaptor<Map<String, Object>> contextCaptor = ArgumentCaptor.forClass(Map.class);
-
-            when(messageLoader.getRawMessage(eq(key), eq("en"), eq("en"))).thenReturn(rawMessage);
-            when(templateProcessor.processTemplate(eq(rawMessage), contextCaptor.capture())).thenReturn(expectedComponent);
+            when(templateService.renderMessage(eq(key), eq("en"), contextCaptor.capture()))
+                    .thenReturn(Result.success(expectedComponent));
 
             Audience senderAudience = mock(Audience.class);
             when(audiences.sender(sender)).thenReturn(senderAudience);
@@ -253,11 +206,9 @@ class DefaultMessageServiceTest {
             String key = "test.broadcast.key";
             when(message.getKey()).thenReturn(key);
 
-            String rawMessage = "Broadcast message with {{ param }}";
             Component expectedComponent = Component.text("Broadcast message with value");
-
-            when(messageLoader.getRawMessage(key, "en", "en")).thenReturn(rawMessage);
-            when(templateProcessor.processTemplate(rawMessage, context)).thenReturn(expectedComponent);
+            when(templateService.renderMessage(eq(key), eq("en"), eq(context)))
+                    .thenReturn(Result.success(expectedComponent));
 
             Audience allAudience = mock(Audience.class);
             when(audiences.all()).thenReturn(allAudience);
@@ -279,14 +230,12 @@ class DefaultMessageServiceTest {
             String key = "test.broadcast.empty.key";
             when(message.getKey()).thenReturn(key);
 
-            String rawMessage = "Broadcast with empty context";
             Component expectedComponent = Component.text("Broadcast with empty context");
 
             // Capture the context argument
             ArgumentCaptor<Map<String, Object>> contextCaptor = ArgumentCaptor.forClass(Map.class);
-
-            when(messageLoader.getRawMessage(eq(key), eq("en"), eq("en"))).thenReturn(rawMessage);
-            when(templateProcessor.processTemplate(eq(rawMessage), contextCaptor.capture())).thenReturn(expectedComponent);
+            when(templateService.renderMessage(eq(key), eq("en"), contextCaptor.capture()))
+                    .thenReturn(Result.success(expectedComponent));
 
             Audience allAudience = mock(Audience.class);
             when(audiences.all()).thenReturn(allAudience);
@@ -309,10 +258,9 @@ class DefaultMessageServiceTest {
     @DisplayName("Locale Detection Tests")
     class LocaleDetectionTests {
 
-        @ParameterizedTest
-        @ValueSource(strings = {"en_US", "fr_FR", "de_DE"})
+        @Test
         @DisplayName("Should detect player locale")
-        void shouldDetectPlayerLocale(String playerLocale) {
+        void shouldDetectPlayerLocale() {
             // Arrange
             Player player = mock(Player.class);
             Messages message = mock(Messages.class);
@@ -321,16 +269,12 @@ class DefaultMessageServiceTest {
             String key = "test.locale.key";
             when(message.getKey()).thenReturn(key);
 
-            // Player locale should be converted to just the language part
-            String expectedLocale = playerLocale.split("_")[0].toLowerCase(Locale.ROOT);
+            Locale playerLocale = Locale.FRENCH;
+            when(player.locale()).thenReturn(playerLocale);
 
-            when(player.getLocale()).thenReturn(playerLocale);
-
-            String rawMessage = "Localized message";
             Component expectedComponent = Component.text("Localized message");
-
-            when(messageLoader.getRawMessage(key, expectedLocale, "en")).thenReturn(rawMessage);
-            when(templateProcessor.processTemplate(rawMessage, context)).thenReturn(expectedComponent);
+            when(templateService.renderMessage(eq(key), eq("fr"), eq(context)))
+                    .thenReturn(Result.success(expectedComponent));
 
             Audience playerAudience = mock(Audience.class);
             when(audiences.sender(player)).thenReturn(playerAudience);
@@ -339,9 +283,8 @@ class DefaultMessageServiceTest {
             messageService.sendMessage(player, message, context);
 
             // Assert
-            verify(player).getLocale();
-            verify(messageLoader).getRawMessage(key, expectedLocale, "en");
-            verify(templateProcessor).processTemplate(rawMessage, context);
+            verify(player).locale();
+            verify(templateService).renderMessage(key, "fr", context);
             verify(audiences).sender(player);
             verify(playerAudience).sendMessage(expectedComponent);
         }
@@ -357,13 +300,11 @@ class DefaultMessageServiceTest {
             String key = "test.null.locale.key";
             when(message.getKey()).thenReturn(key);
 
-            when(player.getLocale()).thenReturn(null);
+            when(player.locale()).thenReturn(null);
 
-            String rawMessage = "Default locale message";
             Component expectedComponent = Component.text("Default locale message");
-
-            when(messageLoader.getRawMessage(key, "en", "en")).thenReturn(rawMessage);
-            when(templateProcessor.processTemplate(rawMessage, context)).thenReturn(expectedComponent);
+            when(templateService.renderMessage(eq(key), eq("en"), eq(context)))
+                    .thenReturn(Result.success(expectedComponent));
 
             Audience playerAudience = mock(Audience.class);
             when(audiences.sender(player)).thenReturn(playerAudience);
@@ -372,44 +313,35 @@ class DefaultMessageServiceTest {
             messageService.sendMessage(player, message, context);
 
             // Assert
-            verify(player).getLocale();
-            verify(messageLoader).getRawMessage(key, "en", "en");
-            verify(templateProcessor).processTemplate(rawMessage, context);
+            verify(player).locale();
+            verify(templateService).renderMessage(key, "en", context);
             verify(audiences).sender(player);
             verify(playerAudience).sendMessage(expectedComponent);
         }
 
         @Test
-        @DisplayName("Should use default locale for empty player locale")
-        void shouldUseDefaultLocaleForEmptyPlayerLocale() {
+        @DisplayName("Should use default locale for non-player sender")
+        void shouldUseDefaultLocaleForNonPlayerSender() {
             // Arrange
-            Player player = mock(Player.class);
+            CommandSender sender = mock(CommandSender.class);
             Messages message = mock(Messages.class);
             Map<String, Object> context = new HashMap<>();
 
-            String key = "test.empty.locale.key";
+            String key = "test.console.key";
             when(message.getKey()).thenReturn(key);
 
-            when(player.getLocale()).thenReturn("");
+            Component expectedComponent = Component.text("Console message");
+            when(templateService.renderMessage(eq(key), eq("en"), eq(context)))
+                    .thenReturn(Result.success(expectedComponent));
 
-            String rawMessage = "Default locale message";
-            Component expectedComponent = Component.text("Default locale message");
-
-            when(messageLoader.getRawMessage(key, "en", "en")).thenReturn(rawMessage);
-            when(templateProcessor.processTemplate(rawMessage, context)).thenReturn(expectedComponent);
-
-            Audience playerAudience = mock(Audience.class);
-            when(audiences.sender(player)).thenReturn(playerAudience);
+            Audience senderAudience = mock(Audience.class);
+            when(audiences.sender(sender)).thenReturn(senderAudience);
 
             // Act
-            messageService.sendMessage(player, message, context);
+            messageService.sendMessage(sender, message, context);
 
             // Assert
-            verify(player).getLocale();
-            verify(messageLoader).getRawMessage(key, "en", "en");
-            verify(templateProcessor).processTemplate(rawMessage, context);
-            verify(audiences).sender(player);
-            verify(playerAudience).sendMessage(expectedComponent);
+            verify(templateService).renderMessage(key, "en", context);
         }
     }
 
@@ -425,26 +357,6 @@ class DefaultMessageServiceTest {
 
             // Assert
             verify(audiences).close();
-        }
-
-        @Test
-        @DisplayName("Should handle null audiences during shutdown")
-        void shouldHandleNullAudiencesDuringShutdown() {
-            // Arrange
-            DefaultMessageService serviceWithNullAudiences = new DefaultMessageService(plugin, configService) {
-                {
-                    try {
-                        java.lang.reflect.Field audiencesField = DefaultMessageService.class.getDeclaredField("audiences");
-                        audiencesField.setAccessible(true);
-                        audiencesField.set(this, null);
-                    } catch (Exception e) {
-                        throw new RuntimeException("Failed to set up test", e);
-                    }
-                }
-            };
-
-            // Act & Assert - Should not throw exception
-            assertDoesNotThrow(() -> serviceWithNullAudiences.shutdown());
         }
     }
 }

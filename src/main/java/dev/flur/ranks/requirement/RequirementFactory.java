@@ -52,4 +52,41 @@ public class RequirementFactory {
 
         return registry.create(key, params);
     }
+
+    /**
+     * Gets a human-readable name for a requirement instance.
+     *
+     * @param requirement the requirement to get the name for
+     * @return the requirement name, or null if not found
+     */
+    @org.jetbrains.annotations.Nullable
+    public String getRequirementName(@NotNull Requirement requirement) {
+        // Try to get the class name and format it nicely
+        String className = requirement.getClass().getSimpleName();
+        // Remove "Requirement" suffix if present
+        if (className.endsWith("Requirement")) {
+            className = className.substring(0, className.length() - "Requirement".length());
+        }
+        // Convert CamelCase to readable format
+        return formatCamelCase(className);
+    }
+
+    /**
+     * Formats a CamelCase string to a readable format.
+     * Example: "BlockBreak" -> "Block Break"
+     */
+    private String formatCamelCase(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (i > 0 && Character.isUpperCase(c)) {
+                result.append(' ');
+            }
+            result.append(c);
+        }
+        return result.toString();
+    }
 }

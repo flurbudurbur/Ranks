@@ -1,0 +1,4 @@
+{# Default layout for all messages #}
+{# Extend this layout with: {% extends "layouts/default" %} #}
+
+{% block prefix %}<gray>[<gold>Ranks</gold>]</gray> {% endblock %}{% block content %}{% endblock %}{% block suffix %}{% endblock %}

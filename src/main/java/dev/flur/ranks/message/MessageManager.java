@@ -120,10 +120,9 @@ public class MessageManager {
      */
     private String getLocaleForSender(@NotNull CommandSender sender) {
         if (sender instanceof Player player) {
-            String locale = player.getLocale();
-            if (locale != null && !locale.isEmpty()) {
-                // Convert to just the language part (e.g., "en_US" -> "en")
-                return locale.split("_")[0].toLowerCase(Locale.ROOT);
+            Locale locale = player.locale();
+            if (locale != null) {
+                return locale.getLanguage();
             }
         }
         return defaultLocale;

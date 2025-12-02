@@ -3,6 +3,9 @@ package dev.flur.ranks.service;
 import dev.flur.ranks.Ranks;
 import dev.flur.ranks.service.services.DefaultRequirementRegistry;
 import dev.flur.ranks.service.services.*;
+import dev.flur.ranks.template.service.DefaultTemplateService;
+import dev.flur.ranks.template.service.TemplateService;
+import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.Contract;
@@ -20,6 +23,7 @@ public class ServiceContainer implements Lifecycle {
 
     // Core services
     private ConfigurationService configurationService;
+    private TemplateService templateService;
     private MessageService messageService;
     private PermissionService permissionService;
     private DefaultRequirementRegistry requirementRegistry;
@@ -46,6 +50,7 @@ public class ServiceContainer implements Lifecycle {
 
         // Core services first
         this.configurationService = createConfigurationService();
+        this.templateService = createTemplateService();
         this.permissionService = createPermissionService();
         this.messageService = createMessageService();
         this.requirementRegistry = createRequirementRegistry();
@@ -67,6 +72,11 @@ public class ServiceContainer implements Lifecycle {
         return new DefaultConfigurationService(plugin);
     }
 
+    @Contract(" -> new")
+    private @NotNull TemplateService createTemplateService() {
+        return new DefaultTemplateService(plugin, configurationService);
+    }
+
     private @NotNull PermissionService createPermissionService() {
         Permission vaultPermission = plugin.getVaultProvider().getPermissions();
         return new DefaultPermissionService(vaultPermission, logger);
@@ -74,7 +84,8 @@ public class ServiceContainer implements Lifecycle {
 
     @Contract(" -> new")
     private @NotNull MessageService createMessageService() {
-        return new DefaultMessageService(plugin, configurationService);
+        BukkitAudiences audiences = BukkitAudiences.create(plugin);
+        return new DefaultMessageService(plugin, templateService, audiences);
     }
 
     @Contract(" -> new")
@@ -145,6 +156,11 @@ public class ServiceContainer implements Lifecycle {
     }
 
     @NotNull
+    public TemplateService getTemplateService() {
+        return templateService;
+    }
+
+    @NotNull
     public MessageService getMessageService() {
         return messageService;
     }
@@ -204,6 +220,7 @@ public class ServiceContainer implements Lifecycle {
      */
     public void reload() {
         configurationService.reloadConfigurations();
+        templateService.reload();
         messageService.reload();
         ranksService.reload();
     }
@@ -217,6 +234,9 @@ public class ServiceContainer implements Lifecycle {
     @Override
     public void stop() {
         // Shutdown all services that need to be stopped
+        if (templateService != null) {
+            templateService.shutdown();
+        }
         if (messageService != null) {
             messageService.shutdown();
         }
@@ -227,6 +247,7 @@ public class ServiceContainer implements Lifecycle {
     public boolean isHealthy() {
         // Check if all required services are available and healthy
         return configurationService != null
+                && templateService != null
                 && messageService != null
                 && permissionService != null
                 && ranksService != null

@@ -34,9 +34,6 @@ class DefaultRequirementValidatorTest {
         requirement1 = mock(Requirement.class);
         requirement2 = mock(Requirement.class);
 
-        // Setup mock behavior
-        when(registry.getRequirementInfo()).thenReturn(Map.of());
-
         validator = new DefaultRequirementValidator(logger, registry);
     }
 
