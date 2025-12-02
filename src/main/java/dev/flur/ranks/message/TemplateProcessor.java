@@ -15,7 +15,11 @@ import java.util.Map;
 
 /**
  * Responsible for processing templates using Pebble and formatting them with MiniMessage.
+ *
+ * @deprecated Use {@link dev.flur.ranks.template.service.TemplateService} instead.
+ *             This class will be removed in a future version.
  */
+@Deprecated(forRemoval = true)
 public class TemplateProcessor {
     private final Ranks plugin;
     private final PebbleEngine pebbleEngine;

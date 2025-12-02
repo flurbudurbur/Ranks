@@ -10,7 +10,11 @@ import java.util.Map;
 
 /**
  * Responsible for loading and managing message templates from configuration files.
+ *
+ * @deprecated Use {@link dev.flur.ranks.template.service.TemplateService} instead.
+ *             This class will be removed in a future version.
  */
+@Deprecated(forRemoval = true)
 public class MessageLoader {
     private final Ranks plugin;
     private final Map<String, Map<String, String>> localeMessages;

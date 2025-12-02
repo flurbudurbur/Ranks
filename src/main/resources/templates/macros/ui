@@ -1,0 +1,44 @@
+{# UI Macro Library #}
+{# Import with: {% import "macros/ui" %} #}
+
+{# Clickable button macro #}
+{# Usage: {{ ui.button('Click Me', '/command', 'Hover text') }} #}
+{% macro button(text, command, hover) %}
+<click:run_command:'{{ command }}'><hover:show_text:'{{ hover | default("Click to run") }}'><gold>[<yellow>{{ text }}</yellow>]</gold></hover></click>
+{% endmacro %}
+
+{# Suggest command button (puts command in chat) #}
+{# Usage: {{ ui.suggest('Edit', '/edit ', 'Click to edit') }} #}
+{% macro suggest(text, command, hover) %}
+<click:suggest_command:'{{ command }}'><hover:show_text:'{{ hover | default("Click to suggest") }}'><aqua>[<white>{{ text }}</white>]</aqua></hover></click>
+{% endmacro %}
+
+{# List item with index #}
+{# Usage: {{ ui.listItem('Some text', 1) }} #}
+{% macro listItem(text, index) %}
+<gray>{{ index }}.</gray> {{ text }}
+{% endmacro %}
+
+{# Progress bar #}
+{# Usage: {{ ui.progressBar(5, 10, '<green>|</green>', '<dark_gray>|</dark_gray>') }} #}
+{% macro progressBar(current, max, filled, empty) %}
+{% set percentage = ((current / max) * 20) | round %}
+<gray>[</gray>{% for i in range(1, 21) %}{% if i <= percentage %}{{ filled | default('<green>|</green>') }}{% else %}{{ empty | default('<dark_gray>|</dark_gray>') }}{% endif %}{% endfor %}<gray>]</gray>
+{% endmacro %}
+
+{# Header with decoration #}
+{# Usage: {{ ui.header('Title') }} #}
+{% macro header(text) %}
+<gray>━━━━━━━━━━</gray> <gold>{{ text }}</gold> <gray>━━━━━━━━━━</gray>
+{% endmacro %}
+
+{# Separator line #}
+{% macro separator() %}
+<gray>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</gray>
+{% endmacro %}
+
+{# Status indicator #}
+{# Usage: {{ ui.status(true, 'Completed', 'Pending') }} #}
+{% macro status(condition, trueText, falseText) %}
+{% if condition %}<green>✓</green> {{ trueText }}{% else %}<red>✗</red> {{ falseText }}{% endif %}
+{% endmacro %}

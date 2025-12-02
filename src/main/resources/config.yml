@@ -3,3 +3,19 @@
 prefer-luckperms: true
 
 locale: 'en'
+
+# Template engine configuration
+templates:
+  cache:
+    # Enable template caching for better performance
+    enabled: true
+    # Maximum number of templates to cache
+    max-size: 100
+    # Cache time-to-live in seconds (set to -1 for infinite)
+    ttl-seconds: 300
+  # Enable hot-reload to detect file changes (useful for development)
+  hot-reload: false
+  # Fail on undefined variables in templates
+  strict-variables: false
+  # Enable PlaceholderAPI integration in templates
+  papi-enabled: true

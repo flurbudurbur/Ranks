@@ -1,0 +1,3 @@
+{# Broadcast layout for server-wide announcements #}
+
+{% block prefix %}<gray>[<gold>Ranks</gold>]</gray> {% endblock %}{% block content %}{% endblock %}{% block suffix %}{% endblock %}
