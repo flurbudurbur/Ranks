@@ -1,16 +1,13 @@
 package dev.flur.ranks.service.services;
 
-import dev.flur.ranks.requirement.AnnotatedRequirement;
+import dev.flur.ranks.requirement.BaseRequirement;
 import dev.flur.ranks.requirement.Requirement;
-import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
-import dev.flur.ranks.requirement.records.RequirementRecord;
+import dev.flur.ranks.requirement.RequirementType;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -22,57 +19,6 @@ class DefaultRequirementRegistryTest {
     private DefaultRequirementRegistry registry;
     private Logger mockLogger;
 
-    @RequirementAnnotation(
-            name = "test-requirement",
-            minimum = 1,
-            maximum = 3,
-            usage = "Format: [param1 [param2]] amount"
-    )
-    public static class TestRequirement extends AnnotatedRequirement {
-        public TestRequirement(String[] params) {
-            super(params);
-        }
-
-        @Override
-        public boolean meetsRequirement(Player player) {
-            return false;
-        }
-
-        // Getter for the protected amount field for testing
-        public double getAmount() {
-            return amount;
-        }
-    }
-
-    @RequirementAnnotation(
-            name = "another-requirement",
-            minimum = 2,
-            usage = "Format: param1 amount"
-    )
-    public static class AnotherRequirement extends AnnotatedRequirement {
-        public AnotherRequirement(String[] params) {
-            super(params);
-        }
-
-        @Override
-        public boolean meetsRequirement(Player player) {
-            return false;
-        }
-    }
-
-    // This class doesn't extend AnnotatedRequirement
-    private static class NonAnnotatedRequirement implements Requirement {
-        @Override
-        public boolean meetsRequirement(Player player) {
-            return false;
-        }
-
-        @Override
-        public void consume(Player player) {
-            // Do nothing
-        }
-    }
-
     @BeforeEach
     void setUp() {
         mockLogger = mock(Logger.class);
@@ -80,167 +26,165 @@ class DefaultRequirementRegistryTest {
     }
 
     @Test
-    void testRegisterRequirement() {
-        // Act
-        registry.registerRequirement(TestRequirement.class);
-
-        // Assert
-        assertTrue(registry.hasRequirement("test-requirement"));
-        assertEquals(TestRequirement.class, registry.getRequirementClass("test-requirement"));
-
-        // Verify logging
-        verify(mockLogger).info(contains("Registered requirement: test-requirement"));
+    void testBuiltInRequirementsAvailable() {
+        // All built-in types should be available
+        for (RequirementType type : RequirementType.values()) {
+            assertTrue(registry.hasRequirement(type.getKey()),
+                    "Built-in requirement should exist: " + type.getKey());
+        }
     }
 
     @Test
-    void testRegisterMultipleRequirements() {
+    void testCreateBuiltInMoney() {
         // Act
-        registry.registerRequirement(TestRequirement.class);
-        registry.registerRequirement(AnotherRequirement.class);
+        Requirement requirement = registry.create("money", new String[]{"100"});
 
         // Assert
-        assertTrue(registry.hasRequirement("test-requirement"));
-        assertTrue(registry.hasRequirement("another-requirement"));
-        assertEquals(2, registry.getRegisteredRequirementNames().size());
-        assertEquals(2, registry.getRegisteredRequirementClasses().size());
+        assertNotNull(requirement);
+        assertEquals("money: 100.0", requirement.toString());
     }
 
     @Test
-    void testRegisterNonAnnotatedRequirement() {
+    void testCreateBuiltInXpLevel() {
         // Act
-        registry.registerRequirement(NonAnnotatedRequirement.class);
+        Requirement requirement = registry.create("xp-level", new String[]{"30"});
 
         // Assert
-        assertFalse(registry.hasRequirement("non-annotated-requirement"));
-
-        // Verify warning was logged
-        verify(mockLogger).warning(contains("does not extend AnnotatedRequirement"));
+        assertNotNull(requirement);
+        assertEquals("xp-level: 30", requirement.toString());
     }
 
     @Test
-    void testGetMinMaxParams() {
-        // Arrange
-        registry.registerRequirement(TestRequirement.class);
-        registry.registerRequirement(AnotherRequirement.class);
+    void testCreateBuiltInDeaths() {
+        // Act
+        Requirement requirement = registry.create("deaths", new String[]{"5"});
 
+        // Assert
+        assertNotNull(requirement);
+        assertEquals("deaths: 5", requirement.toString());
+    }
+
+    @Test
+    void testCreateUnknownRequirement() {
         // Act & Assert
-        assertEquals(1, registry.getMinParams("test-requirement"));
-        assertEquals(3, registry.getMaxParams("test-requirement"));
-        assertEquals(2, registry.getMinParams("another-requirement"));
-        assertEquals(Integer.MAX_VALUE, registry.getMaxParams("another-requirement"));
+        assertThrows(IllegalArgumentException.class,
+                () -> registry.create("unknown", new String[]{"100"}));
+    }
 
-        // Non-existent requirement
+    @Test
+    void testRegisterCustomRequirement() {
+        // Arrange
+        registry.register("custom-req", 1, 2, "Format: amount",
+                params -> new BaseRequirement(params) {
+                    @Override
+                    public boolean meetsRequirement(@NotNull Player player) {
+                        return false;
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "custom: " + amount;
+                    }
+                });
+
+        // Act
+        assertTrue(registry.hasRequirement("custom-req"));
+        Requirement requirement = registry.create("custom-req", new String[]{"50"});
+
+        // Assert
+        assertNotNull(requirement);
+        assertEquals("custom: 50.0", requirement.toString());
+        verify(mockLogger).info(contains("Registered custom requirement: custom-req"));
+    }
+
+    @Test
+    void testCannotOverrideBuiltIn() {
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class,
+                () -> registry.register("money", 1, 1, "test",
+                        params -> mock(Requirement.class)));
+    }
+
+    @Test
+    void testGetMinMaxParams_BuiltIn() {
+        // Assert
+        assertEquals(1, registry.getMinParams("money"));
+        assertEquals(1, registry.getMaxParams("money"));
+
+        assertEquals(2, registry.getMinParams("block-break"));
+        assertEquals(Integer.MAX_VALUE, registry.getMaxParams("block-break"));
+    }
+
+    @Test
+    void testGetMinMaxParams_Custom() {
+        // Arrange
+        registry.register("custom", 2, 5, "test", params -> mock(Requirement.class));
+
+        // Assert
+        assertEquals(2, registry.getMinParams("custom"));
+        assertEquals(5, registry.getMaxParams("custom"));
+    }
+
+    @Test
+    void testGetMinMaxParams_NonExistent() {
+        // Assert
         assertEquals(-1, registry.getMinParams("non-existent"));
         assertEquals(-1, registry.getMaxParams("non-existent"));
     }
 
     @Test
-    void testGetParamNames() {
+    void testGetRegisteredNames() {
         // Arrange
-        registry.registerRequirement(TestRequirement.class);
-
-        // Act
-        List<String> paramNames = registry.getParamNames("test-requirement");
-
-        // Assert
-        assertEquals(1, paramNames.size());
-        assertEquals("test-requirement", paramNames.get(0));
-
-        // Non-existent requirement
-        assertTrue(registry.getParamNames("non-existent").isEmpty());
-    }
-
-    @Test
-    void testCreateRequirementFromMap() {
-        // Arrange
-        registry.registerRequirement(TestRequirement.class);
-        Map<String, String> params = new HashMap<>();
-        params.put("param1", "value1");
-        params.put("amount", "100.5");
-
-        // Act
-        Requirement requirement = registry.createRequirement("test-requirement", params);
-
-        // Assert
-        assertNotNull(requirement);
-        assertTrue(requirement instanceof TestRequirement);
-        assertEquals(100.5, ((TestRequirement) requirement).getAmount());
-    }
-
-    @Test
-    void testCreateRequirementFromString() {
-        // Arrange
-        registry.registerRequirement(TestRequirement.class);
-
-        // Act
-        Requirement requirement = registry.createRequirement("test-requirement", "param1,100.5");
-
-        // Assert
-        assertNotNull(requirement);
-        assertTrue(requirement instanceof TestRequirement);
-        assertEquals(100.5, ((TestRequirement) requirement).getAmount());
-    }
-
-    @Test
-    void testCreateRequirementInvalidType() {
-        // Act
-        Requirement requirement = registry.createRequirement("non-existent", "param1,100");
-
-        // Assert
-        assertNull(requirement);
-    }
-
-    @Test
-    void testFromNameAndFromClass() {
-        // Arrange
-        registry.registerRequirement(TestRequirement.class);
-
-        // Act & Assert
-        RequirementRecord record = registry.fromName("test-requirement");
-        assertNotNull(record);
-        assertEquals("test-requirement", record.name());
-        assertEquals(TestRequirement.class, record.requirementClass());
-
-        RequirementRecord recordFromClass = registry.fromClass(TestRequirement.class);
-        assertNotNull(recordFromClass);
-        assertEquals("test-requirement", recordFromClass.name());
-        assertEquals(TestRequirement.class, recordFromClass.requirementClass());
-
-        // Non-existent
-        assertNull(registry.fromName("non-existent"));
-        assertNull(registry.fromClass(NonAnnotatedRequirement.class));
-    }
-
-    @Test
-    void testGetRegisteredNamesAndClasses() {
-        // Arrange
-        registry.registerRequirement(TestRequirement.class);
-        registry.registerRequirement(AnotherRequirement.class);
+        registry.register("custom1", 1, 1, "test", params -> mock(Requirement.class));
+        registry.register("custom2", 1, 1, "test", params -> mock(Requirement.class));
 
         // Act
         Set<String> names = registry.getRegisteredNames();
-        Set<Class<? extends Requirement>> classes = registry.getRegisteredClasses();
 
         // Assert
-        assertEquals(2, names.size());
-        assertTrue(names.contains("test-requirement"));
-        assertTrue(names.contains("another-requirement"));
-
-        assertEquals(2, classes.size());
-        assertTrue(classes.contains(TestRequirement.class));
-        assertTrue(classes.contains(AnotherRequirement.class));
+        // Should include all built-in types plus custom ones
+        assertTrue(names.contains("money"));
+        assertTrue(names.contains("xp-level"));
+        assertTrue(names.contains("deaths"));
+        assertTrue(names.contains("custom1"));
+        assertTrue(names.contains("custom2"));
+        assertEquals(RequirementType.values().length + 2, names.size());
     }
 
     @Test
-    void testGetAllRequirements() {
-        // Arrange
-        registry.registerRequirement(TestRequirement.class);
-        registry.registerRequirement(AnotherRequirement.class);
+    void testGetUsage_BuiltIn() {
+        // Assert
+        assertNotNull(registry.getUsage("money"));
+        assertNotNull(registry.getUsage("block-break"));
+    }
 
-        // Act
-        var requirements = registry.getAllRequirements();
+    @Test
+    void testGetUsage_Custom() {
+        // Arrange
+        registry.register("custom", 1, 1, "Custom usage description",
+                params -> mock(Requirement.class));
 
         // Assert
-        assertEquals(2, requirements.size());
+        assertEquals("Custom usage description", registry.getUsage("custom"));
+    }
+
+    @Test
+    void testGetUsage_NonExistent() {
+        // Assert
+        assertNull(registry.getUsage("non-existent"));
+    }
+
+    @Test
+    void testTooFewParams() {
+        // block-break requires at least 2 params
+        assertThrows(IllegalArgumentException.class,
+                () -> registry.create("block-break", new String[]{"100"}));
+    }
+
+    @Test
+    void testTooManyParams() {
+        // money allows only 1 param
+        assertThrows(IllegalArgumentException.class,
+                () -> registry.create("money", new String[]{"100", "200"}));
     }
 }

@@ -1,19 +1,13 @@
 package dev.flur.ranks.requirement.requirements;
 
 import dev.flur.ranks.Ranks;
-import dev.flur.ranks.requirement.AnnotatedRequirement;
-import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
+import dev.flur.ranks.requirement.BaseRequirement;
 import dev.flur.ranks.vault.VaultProvider;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-@RequirementAnnotation(
-        name = "money",
-        maximum = 1,
-        usage = "Format: amount"
-)
-public final class MoneyRequirement extends AnnotatedRequirement {
+public final class MoneyRequirement extends BaseRequirement {
 
     // For testing purposes
     private static @Nullable VaultProvider testVaultProvider = null;

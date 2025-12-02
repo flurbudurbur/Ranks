@@ -1,21 +1,19 @@
 package dev.flur.ranks.requirement;
 
-import dev.flur.ranks.requirement.records.RequirementRecord;
 import dev.flur.ranks.service.services.DefaultRequirementRegistry;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Factory class for creating requirement instances from string representations.
  * <p>
- * This factory works with the {@link DefaultRequirementRegistry} to dynamically create
+ * This factory works with the {@link DefaultRequirementRegistry} to create
  * requirement instances based on registered requirement types.
  * </p>
  *
  * @see DefaultRequirementRegistry
- * @see AnnotatedRequirement
- * @since 1.0
+ * @see RequirementType
  */
+@SuppressWarnings("ClassCanBeRecord")
 public class RequirementFactory {
 
     private final DefaultRequirementRegistry registry;
@@ -42,33 +40,16 @@ public class RequirementFactory {
      */
     @NotNull
     public Requirement createRequirement(@NotNull String input) {
-        if (input.trim().isEmpty()) throw new IllegalArgumentException("Invalid requirement input: " + input);
-        String[] token = input.split("\\s+");
-
-        String key = token[0].toLowerCase();
-        RequirementRecord info = registry.fromName(key);
-        if (info == null) {
-            throw new IllegalArgumentException("Invalid requirement type: " + key);
+        if (input.trim().isEmpty()) {
+            throw new IllegalArgumentException("Invalid requirement input: empty string");
         }
 
-        String[] params = new String[token.length - 1];
-        System.arraycopy(token, 1, params, 0, params.length);
+        String[] tokens = input.split("\\s+");
+        String key = tokens[0].toLowerCase();
 
-        return info.constructor().apply(params);
-    }
+        String[] params = new String[tokens.length - 1];
+        System.arraycopy(tokens, 1, params, 0, params.length);
 
-    /**
-     * Gets the name of a requirement from its class.
-     * <p>
-     * This method looks up the requirement in the registry to find its registered name.
-     * </p>
-     *
-     * @param requirement the requirement instance
-     * @return The name of the requirement, or null if not found in the registry
-     */
-    @Nullable
-    public String getRequirementName(@NotNull Requirement requirement) {
-        RequirementRecord info = registry.fromClass(requirement.getClass());
-        return info != null ? info.name() : null;
+        return registry.create(key, params);
     }
 }

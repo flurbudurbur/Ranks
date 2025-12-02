@@ -1,13 +1,9 @@
 package dev.flur.ranks.requirement;
 
-import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
-import dev.flur.ranks.requirement.records.RequirementRecord;
 import dev.flur.ranks.service.services.DefaultRequirementRegistry;
-import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.function.Function;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,120 +15,104 @@ class RequirementFactoryTest {
     private RequirementFactory factory;
     private Logger mockLogger;
 
-    @RequirementAnnotation(
-            name = "test-requirement",
-            minimum = 1,
-            maximum = 3,
-            usage = "Format: [param1 [param2]] amount"
-    )
-    public static class TestRequirement extends AnnotatedRequirement {
-        public TestRequirement(String[] params) {
-            super(params);
-        }
-
-        @Override
-        public boolean meetsRequirement(Player player) {
-            return false;
-        }
-
-        @Override
-        public String toString() {
-            return "TestRequirement: " + amount;
-        }
-    }
-
     @BeforeEach
     void setUp() {
-        // Create mocks
         mockLogger = mock(Logger.class);
         registry = new DefaultRequirementRegistry(mockLogger);
-
-        // Register the test requirement
-        registry.registerRequirement(TestRequirement.class);
-
-        // Create the factory
         factory = new RequirementFactory(registry);
     }
 
     @Test
-    void testCreateRequirement_ValidInput() {
-        // Arrange
-        String input = "test-requirement 100.5";
-
+    void testCreateRequirement_BuiltInMoney() {
         // Act
-        Requirement requirement = factory.createRequirement(input);
+        Requirement requirement = factory.createRequirement("money 100.5");
 
         // Assert
         assertNotNull(requirement);
-        assertTrue(requirement instanceof TestRequirement);
-        assertEquals(100.5, ((TestRequirement) requirement).amount);
+        assertEquals("money: 100.5", requirement.toString());
     }
 
     @Test
-    void testCreateRequirement_ValidInputWithMultipleParams() {
-        // Arrange
-        String input = "test-requirement param1 param2 50.0";
-
+    void testCreateRequirement_BuiltInXpLevel() {
         // Act
-        Requirement requirement = factory.createRequirement(input);
+        Requirement requirement = factory.createRequirement("xp-level 30");
 
         // Assert
         assertNotNull(requirement);
-        assertTrue(requirement instanceof TestRequirement);
-        assertEquals(50.0, ((TestRequirement) requirement).amount);
-        assertEquals(3, ((TestRequirement) requirement).params.length);
-        assertEquals("param1", ((TestRequirement) requirement).params[0]);
-        assertEquals("param2", ((TestRequirement) requirement).params[1]);
-        assertEquals("50.0", ((TestRequirement) requirement).params[2]);
+        assertEquals("xp-level: 30", requirement.toString());
+    }
+
+    @Test
+    void testCreateRequirement_BuiltInDeaths() {
+        // Act
+        Requirement requirement = factory.createRequirement("deaths 5");
+
+        // Assert
+        assertNotNull(requirement);
+        assertEquals("deaths: 5", requirement.toString());
     }
 
     @Test
     void testCreateRequirement_EmptyInput() {
-        // Arrange
-        String input = "";
-
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> factory.createRequirement(input)
+                () -> factory.createRequirement("")
+        );
+        assertTrue(exception.getMessage().contains("Invalid requirement input"));
+    }
+
+    @Test
+    void testCreateRequirement_WhitespaceInput() {
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> factory.createRequirement("   ")
         );
         assertTrue(exception.getMessage().contains("Invalid requirement input"));
     }
 
     @Test
     void testCreateRequirement_UnknownRequirement() {
-        // Arrange
-        String input = "unknown-requirement 100";
-
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> factory.createRequirement(input)
+                () -> factory.createRequirement("unknown-requirement 100")
         );
-        assertTrue(exception.getMessage().contains("Invalid requirement type"));
+        assertTrue(exception.getMessage().contains("Unknown requirement type"));
     }
 
     @Test
-    void testGetRequirementName_ValidRequirement() {
-        // Arrange
-        Requirement requirement = new TestRequirement(new String[]{"100"});
+    void testCreateRequirement_CustomRequirement() {
+        // Arrange - register a custom requirement
+        registry.register("custom-test", 1, 2, "Format: amount",
+                params -> new BaseRequirement(params) {
+                    @Override
+                    public boolean meetsRequirement(org.bukkit.entity.Player player) {
+                        return false;
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "custom: " + amount;
+                    }
+                });
 
         // Act
-        String name = factory.getRequirementName(requirement);
+        Requirement requirement = factory.createRequirement("custom-test 42");
 
         // Assert
-        assertEquals("test-requirement", name);
+        assertNotNull(requirement);
+        assertEquals("custom: 42.0", requirement.toString());
     }
 
     @Test
-    void testGetRequirementName_UnregisteredRequirement() {
-        // Arrange
-        Requirement unregisteredRequirement = mock(Requirement.class);
-
-        // Act
-        String name = factory.getRequirementName(unregisteredRequirement);
-
-        // Assert
-        assertNull(name);
+    void testCreateRequirement_TooFewParams() {
+        // Act & Assert - block-break requires at least 2 params
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> factory.createRequirement("block-break 100")
+        );
+        assertTrue(exception.getMessage().contains("Too few"));
     }
 }

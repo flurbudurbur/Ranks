@@ -1,7 +1,6 @@
 package dev.flur.ranks.requirement.requirements;
 
-import dev.flur.ranks.requirement.AnnotatedRequirement;
-import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
+import dev.flur.ranks.requirement.BaseRequirement;
 import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
@@ -11,12 +10,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@RequirementAnnotation(
-        name = "time-since-death",
-        maximum = 6,
-        usage = "Format: M1 w2 d3 h4 m5 s6 (any order, but at least 1)"
-)
-public final class TimeSinceDeathRequirement extends AnnotatedRequirement {
+public final class TimeSinceDeathRequirement extends BaseRequirement {
 
     private final long ticksSinceDeath;
 
@@ -30,7 +24,7 @@ public final class TimeSinceDeathRequirement extends AnnotatedRequirement {
 
         // Check if there are too many parameters
         if (params.length > 1) {
-            throw new IllegalArgumentException("Too many parameters: " + getParameterDescription());
+            throw new IllegalArgumentException("Too many parameters. Format: M1 w2 d3 h4 m5 s6");
         }
 
         // Check if the duration is just a number (no units)
@@ -201,8 +195,8 @@ public final class TimeSinceDeathRequirement extends AnnotatedRequirement {
     }
 
     @Override
-    protected double validateRequirementAmount(String[] params) {
-        return 1; // to not fail during runtime.
+    protected double parseAmount(String[] params) {
+        return 1; // Duration parsing is handled separately
     }
 
     @Override

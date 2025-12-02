@@ -1,280 +1,165 @@
 package dev.flur.ranks.service.services;
 
-import dev.flur.ranks.requirement.AnnotatedRequirement;
 import dev.flur.ranks.requirement.Requirement;
-import dev.flur.ranks.service.RequirementDiscovery;
+import dev.flur.ranks.requirement.RequirementEntry;
+import dev.flur.ranks.requirement.RequirementType;
 import dev.flur.ranks.service.RequirementLookup;
-import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
-import dev.flur.ranks.requirement.records.RequirementRecord;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.reflections.Reflections;
-import org.reflections.util.ConfigurationBuilder;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.logging.Logger;
-import java.util.HashMap;
-
-import static org.reflections.scanners.Scanners.SubTypes;
-import static org.reflections.scanners.Scanners.TypesAnnotated;
 
 /**
- * Default implementation of the RequirementDiscovery and RequirementLookup interfaces.
+ * Registry for requirement types.
  * <p>
- * This class provides a static API for backward compatibility with RequirementRegistry.
+ * Built-in requirements are defined in {@link RequirementType} enum.
+ * External plugins can register custom requirements via {@link #register}.
  * </p>
  */
-public class DefaultRequirementRegistry implements RequirementDiscovery, RequirementLookup {
+public class DefaultRequirementRegistry implements RequirementLookup {
 
-    private final Map<String, RequirementRecord> nameRegistry = new ConcurrentHashMap<>();
-    private final Map<Class<? extends Requirement>, RequirementRecord> classRegistry = new ConcurrentHashMap<>();
+    private final Map<String, RequirementEntry> customRegistry = new ConcurrentHashMap<>();
     private final Logger logger;
 
-    /**
-     * Creates a new DefaultRequirementRegistry.
-     *
-     * @param logger The logger to use
-     */
     public DefaultRequirementRegistry(@NotNull Logger logger) {
         this.logger = logger;
+        logger.info("Requirement registry initialized with " + RequirementType.values().length + " built-in types");
     }
 
     /**
-     * Determines the requirement name from the class.
+     * Registers a custom requirement type (for external plugins).
+     *
+     * @param key       the requirement key (e.g., "custom-req")
+     * @param minParams minimum number of parameters
+     * @param maxParams maximum number of parameters
+     * @param usage     usage description for error messages
+     * @param factory   factory function to create instances
      */
-    private static String getRequirementName(@NotNull Class<? extends AnnotatedRequirement> clazz) {
-        return clazz.getAnnotation(RequirementAnnotation.class).name();
+    public void register(@NotNull String key, int minParams, int maxParams,
+                         @NotNull String usage, @NotNull Function<String[], Requirement> factory) {
+        if (RequirementType.fromKey(key) != null) {
+            throw new IllegalArgumentException("Cannot override built-in requirement: " + key);
+        }
+        customRegistry.put(key, new RequirementEntry(key, minParams, maxParams, usage, factory));
+        logger.info("Registered custom requirement: " + key);
     }
 
     /**
-     * Creates a constructor function for the requirement class.
+     * Creates a requirement instance.
+     *
+     * @param key    the requirement key
+     * @param params the parameters
+     * @return the created requirement
+     * @throws IllegalArgumentException if the requirement type is not found or params are invalid
      */
-    @Contract(pure = true)
-    private static @NotNull Function<String[], Requirement> createConstructor(Class<? extends AnnotatedRequirement> clazz) {
-        return params -> {
-            try {
-                Constructor<? extends AnnotatedRequirement> constructor =
-                        clazz.getConstructor(String[].class);
-                return constructor.newInstance((Object) params);
-            } catch (InvocationTargetException e) {
-                if (e.getCause() instanceof IllegalArgumentException) {
-                    throw (IllegalArgumentException) e.getCause();
-                }
-                throw new RuntimeException("Failed to create requirement instance: " + clazz.getName(), e);
-            } catch (NoSuchMethodException | InstantiationException | IllegalAccessException e) {
-                throw new RuntimeException("Failed to create requirement instance: " + clazz.getName(), e);
-            }
-        };
-    }
-
-    @Override
-    public void registerRequirement(@NotNull Class<? extends Requirement> requirementClass) {
-        if (!(AnnotatedRequirement.class.isAssignableFrom(requirementClass))) {
-            logger.warning("Requirement class " + requirementClass.getName() + " does not extend AnnotatedRequirement");
-            return;
+    @NotNull
+    public Requirement create(@NotNull String key, @NotNull String[] params) {
+        // Try built-in types first
+        RequirementType builtIn = RequirementType.fromKey(key);
+        if (builtIn != null) {
+            return builtIn.create(params);
         }
 
-        @SuppressWarnings("unchecked")
-        Class<? extends AnnotatedRequirement> annotatedClass = (Class<? extends AnnotatedRequirement>) requirementClass;
-
-        String name = getRequirementName(annotatedClass);
-        Function<String[], dev.flur.ranks.requirement.Requirement> constructor = createConstructor(annotatedClass);
-
-        RequirementRecord info = new RequirementRecord(name, constructor, requirementClass);
-        nameRegistry.put(name, info);
-        classRegistry.put(requirementClass, info);
-
-        logger.info("Registered requirement: " + name + " (" + requirementClass.getSimpleName() + ")");
-    }
-
-    @Override
-    public int discoverRequirements(@NotNull String packageName) {
-        try {
-            Reflections reflections = new Reflections(new ConfigurationBuilder()
-                    .forPackages(packageName)
-                    .setScanners(SubTypes, TypesAnnotated));
-
-            Set<Class<? extends AnnotatedRequirement>> requirementClasses =
-                    reflections.getSubTypesOf(AnnotatedRequirement.class);
-
-            int count = 0;
-            for (Class<? extends AnnotatedRequirement> clazz : requirementClasses) {
-                try {
-                    registerRequirement(clazz);
-                    count++;
-                } catch (Exception e) {
-                    logger.severe("Failed to register requirement class: " + clazz.getName() + " - " + e.getMessage());
-                }
-            }
-
-            logger.info("Discovered " + count + " requirement types in package " + packageName);
-            return count;
-        } catch (Exception e) {
-            logger.severe("Failed to discover requirements in package " + packageName + ": " + e.getMessage());
-            return 0;
+        // Try custom registry
+        RequirementEntry custom = customRegistry.get(key);
+        if (custom != null) {
+            return custom.create(params);
         }
+
+        throw new IllegalArgumentException("Unknown requirement type: " + key);
     }
 
     @Override
-    @NotNull
-    public List<Class<? extends Requirement>> getRegisteredRequirementClasses() {
-        return new ArrayList<>(classRegistry.keySet());
-    }
-
-    @Override
-    @NotNull
-    public List<String> getRegisteredRequirementNames() {
-        return new ArrayList<>(nameRegistry.keySet());
-    }
-
-    @Override
-    public @NotNull Map<String, dev.flur.ranks.requirement.records.RequirementRecord> getRequirementInfo() {
-        return Collections.unmodifiableMap(nameRegistry);
-    }
-
-    @NotNull
-    public Map<String, RequirementRecord> getRequirementRecord() {
-        return Collections.unmodifiableMap(nameRegistry);
+    public boolean hasRequirement(@NotNull String name) {
+        return RequirementType.fromKey(name) != null || customRegistry.containsKey(name);
     }
 
     @Override
     @Nullable
     public Class<? extends Requirement> getRequirementClass(@NotNull String name) {
-        RequirementRecord info = nameRegistry.get(name);
-        return info != null ? info.requirementClass() : null;
+        // For built-in types, we don't expose the class directly
+        // This method is mainly for legacy compatibility
+        return null;
     }
 
     @Override
     @Nullable
     public Requirement createRequirement(@NotNull String name, @NotNull Map<String, String> params) {
-        RequirementRecord info = nameRegistry.get(name);
-        if (info == null) {
-            return null;
-        }
-
+        // Convert map to array - for backwards compatibility
+        String[] paramsArray = params.values().toArray(new String[0]);
         try {
-            // Extract the amount parameter if it exists
-            String amount = params.get("amount");
-
-            // Create a new map without the amount parameter
-            Map<String, String> otherParams = new HashMap<>(params);
-            if (amount != null) {
-                otherParams.remove("amount");
-            }
-
-            // Create an array with the parameters, ensuring amount is last if present
-            String[] paramsArray;
-            if (amount != null) {
-                paramsArray = new String[otherParams.size() * 2 + 1];
-                int i = 0;
-                for (Map.Entry<String, String> entry : otherParams.entrySet()) {
-                    paramsArray[i++] = entry.getKey();
-                    paramsArray[i++] = entry.getValue();
-                }
-                paramsArray[paramsArray.length - 1] = amount;
-            } else {
-                paramsArray = new String[params.size() * 2];
-                int i = 0;
-                for (Map.Entry<String, String> entry : params.entrySet()) {
-                    paramsArray[i++] = entry.getKey();
-                    paramsArray[i++] = entry.getValue();
-                }
-            }
-
-            return info.constructor().apply(paramsArray);
-        } catch (Exception e) {
-            logger.severe("Failed to create requirement " + name + ": " + e.getMessage());
+            return create(name, paramsArray);
+        } catch (IllegalArgumentException e) {
+            logger.warning("Failed to create requirement " + name + ": " + e.getMessage());
             return null;
         }
     }
 
     @Override
     @Nullable
-    public dev.flur.ranks.requirement.Requirement createRequirement(@NotNull String name, @NotNull String params) {
-        RequirementRecord info = nameRegistry.get(name);
-        if (info == null) {
-            return null;
-        }
-
+    public Requirement createRequirement(@NotNull String name, @NotNull String params) {
+        String[] paramsArray = params.isEmpty() ? new String[0] : params.split(",");
         try {
-            String[] paramsArray = params.split(",");
-            return info.constructor().apply(paramsArray);
-        } catch (Exception e) {
-            logger.severe("Failed to create requirement " + name + ": " + e.getMessage());
+            return create(name, paramsArray);
+        } catch (IllegalArgumentException e) {
+            logger.warning("Failed to create requirement " + name + ": " + e.getMessage());
             return null;
         }
     }
 
     @Override
     public int getMinParams(@NotNull String name) {
-        RequirementRecord info = nameRegistry.get(name);
-        if (info == null) {
-            return -1;
+        RequirementType builtIn = RequirementType.fromKey(name);
+        if (builtIn != null) {
+            return builtIn.getMinParams();
         }
-
-        Class<? extends dev.flur.ranks.requirement.Requirement> clazz = info.requirementClass();
-        RequirementAnnotation paramsAnnotation = clazz.getAnnotation(RequirementAnnotation.class);
-        return paramsAnnotation != null ? paramsAnnotation.minimum() : 0;
+        RequirementEntry custom = customRegistry.get(name);
+        return custom != null ? custom.minParams() : -1;
     }
 
     @Override
     public int getMaxParams(@NotNull String name) {
-        RequirementRecord info = nameRegistry.get(name);
-        if (info == null) {
-            return -1;
+        RequirementType builtIn = RequirementType.fromKey(name);
+        if (builtIn != null) {
+            return builtIn.getMaxParams();
         }
-
-        Class<? extends dev.flur.ranks.requirement.Requirement> clazz = info.requirementClass();
-        RequirementAnnotation paramsAnnotation = clazz.getAnnotation(RequirementAnnotation.class);
-        return paramsAnnotation != null ? paramsAnnotation.maximum() : Integer.MAX_VALUE;
+        RequirementEntry custom = customRegistry.get(name);
+        return custom != null ? custom.maxParams() : -1;
     }
 
     @Override
     @NotNull
     public List<String> getParamNames(@NotNull String name) {
-        RequirementRecord info = nameRegistry.get(name);
-        if (info == null) {
-            return Collections.emptyList();
-        }
-
-        Class<? extends dev.flur.ranks.requirement.Requirement> clazz = info.requirementClass();
-        RequirementAnnotation paramsAnnotation = clazz.getAnnotation(RequirementAnnotation.class);
-        // Since RequirementAnnotation doesn't have a names() method, return a list with just the name
-        return paramsAnnotation != null ? Collections.singletonList(paramsAnnotation.name()) : Collections.emptyList();
+        // Parameter names are not tracked in this simplified version
+        return Collections.emptyList();
     }
 
-    @Override
-    public boolean hasRequirement(@NotNull String name) {
-        return nameRegistry.containsKey(name);
-    }
-
-    @Nullable
-    public RequirementRecord fromName(@NotNull String name) {
-        return nameRegistry.get(name);
-    }
-
-    @Nullable
-    public RequirementRecord fromClass(@NotNull Class<? extends dev.flur.ranks.requirement.Requirement> clazz) {
-        return classRegistry.get(clazz);
-    }
-
+    /**
+     * Gets all registered requirement names (built-in + custom).
+     */
     @NotNull
     public Set<String> getRegisteredNames() {
-        return Collections.unmodifiableSet(nameRegistry.keySet());
+        Set<String> names = new HashSet<>();
+        for (RequirementType type : RequirementType.values()) {
+            names.add(type.getKey());
+        }
+        names.addAll(customRegistry.keySet());
+        return Collections.unmodifiableSet(names);
     }
 
-    @NotNull
-    public Set<Class<? extends dev.flur.ranks.requirement.Requirement>> getRegisteredClasses() {
-        return Collections.unmodifiableSet(classRegistry.keySet());
-    }
-
-    @NotNull
-    public Collection<RequirementRecord> getAllRequirements() {
-        return Collections.unmodifiableCollection(nameRegistry.values());
+    /**
+     * Gets the usage string for a requirement type.
+     */
+    @Nullable
+    public String getUsage(@NotNull String name) {
+        RequirementType builtIn = RequirementType.fromKey(name);
+        if (builtIn != null) {
+            return builtIn.getUsage();
+        }
+        RequirementEntry custom = customRegistry.get(name);
+        return custom != null ? custom.usage() : null;
     }
 }

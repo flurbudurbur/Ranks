@@ -1,19 +1,13 @@
 package dev.flur.ranks.requirement.requirements;
 
-import dev.flur.ranks.requirement.AnnotatedRequirement;
-import dev.flur.ranks.requirement.annotations.RequirementAnnotation;
+import dev.flur.ranks.requirement.BaseRequirement;
 import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-@RequirementAnnotation(
-        name = "deaths",
-        usage = "Format: deaths",
-        maximum = 1
-)
-public final class DeathsRequirement extends AnnotatedRequirement {
+public final class DeathsRequirement extends BaseRequirement {
 
-    public DeathsRequirement(String[] params) {
+    public DeathsRequirement(String @NotNull [] params) {
         super(params);
     }
 

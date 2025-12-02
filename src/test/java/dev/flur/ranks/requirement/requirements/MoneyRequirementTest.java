@@ -70,21 +70,26 @@ class MoneyRequirementTest {
     }
 
     @Test
-    void testConstructor_TooManyParams() {
-        // Arrange
+    void testConstructor_MultipleParams() {
+        // Note: Param count validation is now done by RequirementType, not the constructor.
+        // MoneyRequirement with multiple params will just use the last one as amount.
         String[] params = {"param1", "100"};
 
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> new MoneyRequirement(params));
+        // Act
+        MoneyRequirement requirement = new MoneyRequirement(params);
+
+        // Assert - uses last param as amount
+        when(mockEconomy.getBalance(mockPlayer)).thenReturn(100.0);
+        assertTrue(requirement.meetsRequirement(mockPlayer));
     }
 
     @Test
-    void testConstructor_TooFewParams() {
-        // Arrange
+    void testConstructor_EmptyParams() {
+        // Arrange - empty array causes ArrayIndexOutOfBoundsException in parseAmount
         String[] params = {};
 
         // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> new MoneyRequirement(params));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> new MoneyRequirement(params));
     }
 
     @Test

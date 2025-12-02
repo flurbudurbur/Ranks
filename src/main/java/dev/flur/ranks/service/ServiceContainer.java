@@ -79,9 +79,7 @@ public class ServiceContainer implements Lifecycle {
 
     @Contract(" -> new")
     private @NotNull DefaultRequirementRegistry createRequirementRegistry() {
-        DefaultRequirementRegistry registry = new DefaultRequirementRegistry(logger);
-        registry.discoverRequirements("dev.flur.ranks.requirement.requirements");
-        return registry;
+        return new DefaultRequirementRegistry(logger);
     }
 
     @Contract(value = " -> new", pure = true)
