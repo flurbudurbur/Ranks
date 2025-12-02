@@ -1,7 +1,6 @@
 package dev.flur.ranks.service.services;
 
 import dev.flur.ranks.requirement.Requirement;
-import dev.flur.ranks.requirement.RequirementFactory;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +17,6 @@ class DefaultRequirementValidatorTest {
 
     private Logger logger;
     private DefaultRequirementRegistry registry;
-    private RequirementFactory requirementFactory;
     private Player player;
     private Requirement requirement1;
     private Requirement requirement2;
@@ -29,13 +27,9 @@ class DefaultRequirementValidatorTest {
         // Create mocks
         logger = mock(Logger.class);
         registry = mock(DefaultRequirementRegistry.class);
-        requirementFactory = mock(RequirementFactory.class);
         player = mock(Player.class);
         requirement1 = mock(Requirement.class);
         requirement2 = mock(Requirement.class);
-
-        // Setup mock behavior
-        when(registry.getRequirementInfo()).thenReturn(Map.of());
 
         validator = new DefaultRequirementValidator(logger, registry);
     }
@@ -240,46 +234,15 @@ class DefaultRequirementValidatorTest {
     }
 
     @Test
-    void testGetRequirementDescription_Known() {
-        // Setup
-        when(requirementFactory.getRequirementName(requirement1)).thenReturn("Test Requirement");
-
-        // Use reflection to set the requirementFactory field
-        try {
-            java.lang.reflect.Field field = DefaultRequirementValidator.class.getDeclaredField("requirementFactory");
-            field.setAccessible(true);
-            field.set(validator, requirementFactory);
-        } catch (Exception e) {
-            fail("Failed to set requirementFactory field: " + e.getMessage());
-        }
+    void testGetRequirementDescription() {
+        // Setup - use the requirement's toString() method
+        when(requirement1.toString()).thenReturn("Test Requirement Description");
 
         // Test
         String result = validator.getRequirementDescription(requirement1);
 
         // Verify
-        assertEquals("Test Requirement", result);
-        verify(requirementFactory).getRequirementName(requirement1);
-    }
-
-    @Test
-    void testGetRequirementDescription_Unknown() {
-        // Setup
-        when(requirementFactory.getRequirementName(requirement1)).thenReturn(null);
-
-        // Use reflection to set the requirementFactory field
-        try {
-            java.lang.reflect.Field field = DefaultRequirementValidator.class.getDeclaredField("requirementFactory");
-            field.setAccessible(true);
-            field.set(validator, requirementFactory);
-        } catch (Exception e) {
-            fail("Failed to set requirementFactory field: " + e.getMessage());
-        }
-
-        // Test
-        String result = validator.getRequirementDescription(requirement1);
-
-        // Verify
-        assertEquals("Unknown requirement", result);
-        verify(requirementFactory).getRequirementName(requirement1);
+        assertEquals("Test Requirement Description", result);
+        verify(requirement1).toString();
     }
 }

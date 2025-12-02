@@ -14,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
@@ -21,12 +23,21 @@ import java.util.logging.Logger;
  */
 public class DefaultRankProgressionService implements RankProgressionService {
 
+    private static final long CACHE_TTL_MS = 3000;
+
+    private record CachedAvailableRanks(Map<String, String> ranks, long expiresAt) {
+        boolean isExpired() {
+            return System.currentTimeMillis() > expiresAt;
+        }
+    }
+
     private final PermissionService permissionService;
     private final RequirementValidator requirementValidator;
     private final MessageService messageService;
     private final FileConfiguration ranksConfig;
     private final Logger logger;
     private final boolean broadcastRankups;
+    private final Map<UUID, CachedAvailableRanks> availableRanksCache = new ConcurrentHashMap<>();
 
     public DefaultRankProgressionService(
             @NotNull PermissionService permissionService,
@@ -61,6 +72,9 @@ public class DefaultRankProgressionService implements RankProgressionService {
             boolean success = permissionService.addToGroup(player, targetRank);
 
             if (success) {
+                // Invalidate cache after successful rankup
+                availableRanksCache.remove(player.getUniqueId());
+
                 // Handle economy cost if applicable
                 double cost = getUpgradeCost(targetRank);
                 // Economy handling would go here if implemented
@@ -84,6 +98,12 @@ public class DefaultRankProgressionService implements RankProgressionService {
     @Override
     @NotNull
     public Map<String, String> getAvailableRanks(@NotNull Player player) {
+        UUID uuid = player.getUniqueId();
+        CachedAvailableRanks cached = availableRanksCache.get(uuid);
+        if (cached != null && !cached.isExpired()) {
+            return new HashMap<>(cached.ranks());
+        }
+
         String currentRank = permissionService.getPrimaryGroup(player);
         Map<String, String> availableRanks = new HashMap<>();
 
@@ -106,6 +126,9 @@ public class DefaultRankProgressionService implements RankProgressionService {
             String displayName = nextRanksSection.getString(nextRank, nextRank);
             availableRanks.put(nextRank, displayName);
         }
+
+        // Cache the result
+        availableRanksCache.put(uuid, new CachedAvailableRanks(Map.copyOf(availableRanks), System.currentTimeMillis() + CACHE_TTL_MS));
 
         return availableRanks;
     }

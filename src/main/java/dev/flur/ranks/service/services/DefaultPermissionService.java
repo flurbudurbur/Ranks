@@ -5,6 +5,9 @@ import net.milkbowl.vault.permission.Permission;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
@@ -12,8 +15,17 @@ import java.util.logging.Logger;
  */
 public class DefaultPermissionService implements PermissionService {
 
+    private static final long CACHE_TTL_MS = 500;
+
+    private record CachedGroup(String group, long expiresAt) {
+        boolean isExpired() {
+            return System.currentTimeMillis() > expiresAt;
+        }
+    }
+
     private final Permission permission;
     private final Logger logger;
+    private final Map<UUID, CachedGroup> groupCache = new ConcurrentHashMap<>();
 
     public DefaultPermissionService(@NotNull Permission permission, @NotNull Logger logger) {
         this.permission = permission;
@@ -33,9 +45,17 @@ public class DefaultPermissionService implements PermissionService {
     @Override
     @NotNull
     public String getPrimaryGroup(@NotNull Player player) {
+        UUID uuid = player.getUniqueId();
+        CachedGroup cached = groupCache.get(uuid);
+        if (cached != null && !cached.isExpired()) {
+            return cached.group();
+        }
+
         try {
             String group = permission.getPrimaryGroup(player);
-            return group != null ? group : "";
+            String result = group != null ? group : "";
+            groupCache.put(uuid, new CachedGroup(result, System.currentTimeMillis() + CACHE_TTL_MS));
+            return result;
         } catch (Exception e) {
             logger.warning("Error getting primary group for player " + player.getName() + ": " + e.getMessage());
             return "";
@@ -44,6 +64,7 @@ public class DefaultPermissionService implements PermissionService {
 
     @Override
     public boolean addToGroup(@NotNull Player player, @NotNull String groupName) {
+        groupCache.remove(player.getUniqueId());
         try {
             return permission.playerAddGroup(player, groupName);
         } catch (Exception e) {
@@ -54,6 +75,7 @@ public class DefaultPermissionService implements PermissionService {
 
     @Override
     public boolean removeFromGroup(@NotNull Player player, @NotNull String groupName) {
+        groupCache.remove(player.getUniqueId());
         try {
             return permission.playerRemoveGroup(player, groupName);
         } catch (Exception e) {

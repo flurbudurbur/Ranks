@@ -6,42 +6,33 @@ import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 public final class BlockBreakRequirement extends BaseRequirement {
 
-    private final List<String> materials;
+    private final List<Material> materials;
 
     public BlockBreakRequirement(String[] params) {
         super(params);
 
-        List<String> tempBlock = List.of(params).subList(0, params.length - 1);
-
-        // Verify all blocks exist and are blocks
-        for (String material : tempBlock) {
-            try {
-                Material mat = Material.getMaterial(material.toUpperCase());
-                if (mat == null || !mat.isBlock()) {
-                    throw new IllegalArgumentException("Invalid block material: " + material);
-                }
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Invalid block material: " + material);
+        List<Material> resolved = new ArrayList<>();
+        for (int i = 0; i < params.length - 1; i++) {
+            Material mat = Material.getMaterial(params[i].toUpperCase());
+            if (mat == null || !mat.isBlock()) {
+                throw new IllegalArgumentException("Invalid block material: " + params[i]);
             }
+            resolved.add(mat);
         }
 
-        this.materials = tempBlock;
+        this.materials = List.copyOf(resolved);
     }
 
     @Override
     public boolean meetsRequirement(@NotNull Player player) {
-        // Check each block individually
-        for (String material : materials) {
-            int breaks = player.getStatistic(
-                    Statistic.MINE_BLOCK,
-                    Objects.requireNonNull(Material.getMaterial(material.toUpperCase()))
-            );
-            if (breaks < (int) super.amount) {
+        for (Material material : materials) {
+            if (player.getStatistic(Statistic.MINE_BLOCK, material) < (int) super.amount) {
                 return false;
             }
         }
@@ -50,6 +41,9 @@ public final class BlockBreakRequirement extends BaseRequirement {
 
     @Override
     public String toString() {
-        return "block-break: " + String.join(", ", materials) + " - " + (int) super.amount;
+        String materialNames = materials.stream()
+                .map(Material::name)
+                .collect(Collectors.joining(", "));
+        return "block-break: " + materialNames + " - " + (int) super.amount;
     }
 }

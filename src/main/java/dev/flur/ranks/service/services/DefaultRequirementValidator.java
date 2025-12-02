@@ -1,7 +1,6 @@
 package dev.flur.ranks.service.services;
 
 import dev.flur.ranks.requirement.Requirement;
-import dev.flur.ranks.requirement.RequirementFactory;
 import dev.flur.ranks.service.RequirementValidator;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -18,22 +17,30 @@ import java.util.stream.Collectors;
 public class DefaultRequirementValidator implements RequirementValidator {
 
     private final Logger logger;
-    private final RequirementFactory requirementFactory;
 
     /**
      * Creates a new DefaultRequirementValidator with the specified logger.
      *
      * @param logger the logger to use
-     * @param registry the requirement registry to use
+     * @param registry the requirement registry (unused, kept for API compatibility)
      */
     public DefaultRequirementValidator(@NotNull Logger logger, @NotNull DefaultRequirementRegistry registry) {
         this.logger = logger;
-        this.requirementFactory = new RequirementFactory(registry);
     }
 
     @Override
     public boolean meetsAllRequirements(@NotNull Player player, @NotNull List<Requirement> requirements) {
-        return getUnmetRequirements(player, requirements).isEmpty();
+        for (Requirement req : requirements) {
+            try {
+                if (!req.meetsRequirement(player)) {
+                    return false;
+                }
+            } catch (Exception e) {
+                logger.severe("Error checking requirement: " + e.getMessage());
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -72,7 +79,6 @@ public class DefaultRequirementValidator implements RequirementValidator {
     @Override
     @NotNull
     public String getRequirementDescription(@NotNull Requirement requirement) {
-        String reqName = requirementFactory.getRequirementName(requirement);
-        return reqName != null ? reqName : "Unknown requirement";
+        return requirement.toString();
     }
 }

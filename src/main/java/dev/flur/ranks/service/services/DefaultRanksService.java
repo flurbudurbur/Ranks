@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,6 +29,7 @@ public class DefaultRanksService implements RanksService {
     private final RequirementFactory requirementFactory;
     private final Ranks plugin;
     private final Permission permissions;
+    private final Map<String, List<Requirement>> requirementCache = new ConcurrentHashMap<>();
     private Map<String, String> ranksCache;
 
     public DefaultRanksService(@NotNull ConfigurationService configurationService, 
@@ -86,8 +88,6 @@ public class DefaultRanksService implements RanksService {
     @Override
     @NotNull
     public List<Requirement> getRequirements(@NotNull String nextRank, @NotNull Player player) {
-        List<Requirement> requirements = new ArrayList<>();
-
         try {
             String primaryGroup = permissions.getPrimaryGroup(player);
 
@@ -96,7 +96,14 @@ public class DefaultRanksService implements RanksService {
                     logger.warning("No rank configuration found for player " + player.getName()
                             + " with primary group: " + primaryGroup);
                 }
-                return requirements;
+                return new ArrayList<>();
+            }
+
+            // Check cache first
+            String cacheKey = primaryGroup + ":" + nextRank;
+            List<Requirement> cached = requirementCache.get(cacheKey);
+            if (cached != null) {
+                return new ArrayList<>(cached);
             }
 
             FileConfiguration ranksConfig = configurationService.getConfiguration("ranks");
@@ -106,6 +113,7 @@ public class DefaultRanksService implements RanksService {
                 logger.info("Loading requirements from path: " + path);
             }
 
+            List<Requirement> requirements = new ArrayList<>();
             List<String> requirementStrings = ranksConfig.getStringList(path);
             for (String reqString : requirementStrings) {
                 try {
@@ -119,11 +127,15 @@ public class DefaultRanksService implements RanksService {
             if (plugin.isDebugEnabled()) {
                 logger.info("Loaded " + requirements.size() + " requirements for " + nextRank);
             }
+
+            // Cache the requirements
+            requirementCache.put(cacheKey, List.copyOf(requirements));
+
+            return requirements;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Failed to load requirements for " + nextRank, e);
+            return new ArrayList<>();
         }
-
-        return requirements;
     }
 
     @Override
@@ -183,6 +195,7 @@ public class DefaultRanksService implements RanksService {
     @Override
     public void reload() {
         configurationService.reloadConfigurations();
+        requirementCache.clear();
         loadRanks();
     }
 
