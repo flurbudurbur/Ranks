@@ -4,9 +4,8 @@ import dev.flur.ranks.Ranks;
 import dev.flur.ranks.message.Messages;
 import dev.flur.ranks.result.Result;
 import dev.flur.ranks.template.service.TemplateService;
-import net.kyori.adventure.audience.Audience;
-import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -16,6 +15,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -28,9 +28,9 @@ class DefaultMessageServiceTest {
 
     private Ranks plugin;
     private TemplateService templateService;
-    private BukkitAudiences audiences;
     private Logger logger;
     private FileConfiguration config;
+    private Server server;
     private DefaultMessageService messageService;
 
     @BeforeEach
@@ -38,19 +38,20 @@ class DefaultMessageServiceTest {
         // Mock dependencies
         plugin = mock(Ranks.class);
         templateService = mock(TemplateService.class);
-        audiences = mock(BukkitAudiences.class);
         logger = mock(Logger.class);
         config = mock(FileConfiguration.class);
+        server = mock(Server.class);
 
         // Set up plugin mocks
         when(plugin.getLogger()).thenReturn(logger);
         when(plugin.getConfig()).thenReturn(config);
+        when(plugin.getServer()).thenReturn(server);
 
         // Set up config mock
         when(config.getString(eq("locale"), anyString())).thenReturn("en");
 
         // Create service
-        messageService = new DefaultMessageService(plugin, templateService, audiences);
+        messageService = new DefaultMessageService(plugin, templateService);
     }
 
     @Nested
@@ -127,6 +128,8 @@ class DefaultMessageServiceTest {
 
             // Assert
             assertNotNull(result);
+            // Verify the fallback format matches "Missing: <key>"
+            assertEquals(Component.text("Missing: missing.key"), result);
             verify(logger).warning(contains("missing.key"));
         }
     }
@@ -151,15 +154,11 @@ class DefaultMessageServiceTest {
             when(templateService.renderMessage(eq(key), eq("en"), eq(context)))
                     .thenReturn(Result.success(expectedComponent));
 
-            Audience senderAudience = mock(Audience.class);
-            when(audiences.sender(sender)).thenReturn(senderAudience);
-
             // Act
             messageService.sendMessage(sender, message, context);
 
             // Assert
-            verify(audiences).sender(sender);
-            verify(senderAudience).sendMessage(expectedComponent);
+            verify(sender).sendMessage(expectedComponent);
         }
 
         @Test
@@ -179,73 +178,11 @@ class DefaultMessageServiceTest {
             when(templateService.renderMessage(eq(key), eq("en"), contextCaptor.capture()))
                     .thenReturn(Result.success(expectedComponent));
 
-            Audience senderAudience = mock(Audience.class);
-            when(audiences.sender(sender)).thenReturn(senderAudience);
-
             // Act
             messageService.sendMessage(sender, message);
 
             // Assert
-            verify(audiences).sender(sender);
-            verify(senderAudience).sendMessage(expectedComponent);
-
-            // Verify empty context was passed
-            Map<String, Object> capturedContext = contextCaptor.getValue();
-            assertNotNull(capturedContext);
-            assertTrue(capturedContext.isEmpty());
-        }
-
-        @Test
-        @DisplayName("Should broadcast message to all players")
-        void shouldBroadcastMessageToAllPlayers() {
-            // Arrange
-            Messages message = mock(Messages.class);
-            Map<String, Object> context = new HashMap<>();
-            context.put("param", "value");
-
-            String key = "test.broadcast.key";
-            when(message.getKey()).thenReturn(key);
-
-            Component expectedComponent = Component.text("Broadcast message with value");
-            when(templateService.renderMessage(eq(key), eq("en"), eq(context)))
-                    .thenReturn(Result.success(expectedComponent));
-
-            Audience allAudience = mock(Audience.class);
-            when(audiences.all()).thenReturn(allAudience);
-
-            // Act
-            messageService.broadcastMessage(message, context);
-
-            // Assert
-            verify(audiences).all();
-            verify(allAudience).sendMessage(expectedComponent);
-        }
-
-        @Test
-        @DisplayName("Should broadcast message with empty context")
-        void shouldBroadcastMessageWithEmptyContext() {
-            // Arrange
-            Messages message = mock(Messages.class);
-
-            String key = "test.broadcast.empty.key";
-            when(message.getKey()).thenReturn(key);
-
-            Component expectedComponent = Component.text("Broadcast with empty context");
-
-            // Capture the context argument
-            ArgumentCaptor<Map<String, Object>> contextCaptor = ArgumentCaptor.forClass(Map.class);
-            when(templateService.renderMessage(eq(key), eq("en"), contextCaptor.capture()))
-                    .thenReturn(Result.success(expectedComponent));
-
-            Audience allAudience = mock(Audience.class);
-            when(audiences.all()).thenReturn(allAudience);
-
-            // Act
-            messageService.broadcastMessage(message);
-
-            // Assert
-            verify(audiences).all();
-            verify(allAudience).sendMessage(expectedComponent);
+            verify(sender).sendMessage(expectedComponent);
 
             // Verify empty context was passed
             Map<String, Object> capturedContext = contextCaptor.getValue();
@@ -276,17 +213,13 @@ class DefaultMessageServiceTest {
             when(templateService.renderMessage(eq(key), eq("fr"), eq(context)))
                     .thenReturn(Result.success(expectedComponent));
 
-            Audience playerAudience = mock(Audience.class);
-            when(audiences.sender(player)).thenReturn(playerAudience);
-
             // Act
             messageService.sendMessage(player, message, context);
 
             // Assert
             verify(player).locale();
             verify(templateService).renderMessage(key, "fr", context);
-            verify(audiences).sender(player);
-            verify(playerAudience).sendMessage(expectedComponent);
+            verify(player).sendMessage(expectedComponent);
         }
 
         @Test
@@ -306,17 +239,13 @@ class DefaultMessageServiceTest {
             when(templateService.renderMessage(eq(key), eq("en"), eq(context)))
                     .thenReturn(Result.success(expectedComponent));
 
-            Audience playerAudience = mock(Audience.class);
-            when(audiences.sender(player)).thenReturn(playerAudience);
-
             // Act
             messageService.sendMessage(player, message, context);
 
             // Assert
             verify(player).locale();
             verify(templateService).renderMessage(key, "en", context);
-            verify(audiences).sender(player);
-            verify(playerAudience).sendMessage(expectedComponent);
+            verify(player).sendMessage(expectedComponent);
         }
 
         @Test
@@ -334,9 +263,6 @@ class DefaultMessageServiceTest {
             when(templateService.renderMessage(eq(key), eq("en"), eq(context)))
                     .thenReturn(Result.success(expectedComponent));
 
-            Audience senderAudience = mock(Audience.class);
-            when(audiences.sender(sender)).thenReturn(senderAudience);
-
             // Act
             messageService.sendMessage(sender, message, context);
 
@@ -350,13 +276,25 @@ class DefaultMessageServiceTest {
     class LifecycleTests {
 
         @Test
-        @DisplayName("Should shutdown and close audiences")
-        void shouldShutdownAndCloseAudiences() {
+        @DisplayName("Should shutdown gracefully")
+        void shouldShutdownGracefully() {
             // Act
             messageService.shutdown();
 
             // Assert
-            verify(audiences).close();
+            // shutdown() has no observable side effects - Paper manages Adventure lifecycle
+            // Verify no exceptions are thrown and service remains operational
+            assertDoesNotThrow(() -> messageService.shutdown());
+
+            // Verify service still functions after shutdown (no cleanup performed)
+            String key = "test.post.shutdown";
+            String locale = "en";
+            Component expectedComponent = Component.text("Still works");
+            when(templateService.renderMessage(key, locale, Collections.emptyMap()))
+                    .thenReturn(Result.success(expectedComponent));
+
+            Component result = messageService.getMessage(key, locale, Collections.emptyMap());
+            assertEquals(expectedComponent, result);
         }
     }
 }

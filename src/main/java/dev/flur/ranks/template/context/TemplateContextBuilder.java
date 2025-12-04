@@ -1,13 +1,19 @@
 package dev.flur.ranks.template.context;
 
+import dev.flur.ranks.requirement.Requirement;
+import dev.flur.ranks.service.RanksService;
+import dev.flur.ranks.service.RequirementService;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Fluent builder for creating template contexts.
@@ -138,6 +144,130 @@ public class TemplateContextBuilder {
     public TemplateContextBuilder withRank(@NotNull String key, @NotNull String rankName) {
         context.put(key, rankName);
         return this;
+    }
+
+    /**
+     * Adds a single step (rank transition) to the context.
+     * <p>
+     * Template usage:
+     * <pre>
+     * {{ step.from }}          → current rank
+     * {{ step.to }}            → target rank
+     * {{ step.requirements }}  → list of requirements
+     * {{ step.allSatisfied }}  → boolean
+     * </pre>
+     *
+     * @param key                The context key (typically "step")
+     * @param fromRank           The source rank ID
+     * @param toRank             The target rank ID
+     * @param player             The player (for requirement progress)
+     * @param ranksService       The ranks service
+     * @param requirementService The requirement service
+     * @return This builder
+     */
+    @NotNull
+    public TemplateContextBuilder withStep(
+            @NotNull String key,
+            @NotNull String fromRank,
+            @NotNull String toRank,
+            @NotNull Player player,
+            @NotNull RanksService ranksService,
+            @NotNull RequirementService requirementService) {
+        StepContext stepContext = buildStepContext(
+                fromRank, toRank, player, ranksService, requirementService);
+        context.put(key, stepContext);
+        return this;
+    }
+
+    /**
+     * Adds multiple steps (for branching paths) to the context.
+     * <p>
+     * Template usage:
+     * <pre>
+     * {% for s in steps %}
+     *   {{ s.to }} - {{ s.progressPercent }}%
+     * {% endfor %}
+     * </pre>
+     *
+     * @param key                The context key (typically "steps")
+     * @param fromRank           The source rank ID
+     * @param player             The player (for requirement progress)
+     * @param ranksService       The ranks service
+     * @param requirementService The requirement service
+     * @return This builder
+     */
+    @NotNull
+    public TemplateContextBuilder withSteps(
+            @NotNull String key,
+            @NotNull String fromRank,
+            @NotNull Player player,
+            @NotNull RanksService ranksService,
+            @NotNull RequirementService requirementService) {
+        Map<String, String> nextRanks = ranksService.getNextRanks(fromRank);
+        List<StepContext> steps = new ArrayList<>(nextRanks.size());
+
+        for (String toRank : nextRanks.keySet()) {
+            StepContext stepContext = buildStepContext(
+                    fromRank, toRank, player, ranksService, requirementService);
+            steps.add(stepContext);
+        }
+
+        context.put(key, steps);
+        return this;
+    }
+
+    /**
+     * Adds the list of all ranks to the context.
+     * <p>
+     * Template usage:
+     * <pre>
+     * {{ ranks }}              → list of all rank IDs
+     * {{ ranks | length }}     → total number of ranks
+     * </pre>
+     *
+     * @param key          The context key (typically "ranks")
+     * @param ranksService The ranks service
+     * @return This builder
+     */
+    @NotNull
+    public TemplateContextBuilder withRanks(@NotNull String key, @NotNull RanksService ranksService) {
+        context.put(key, ranksService.getAllRanks());
+        return this;
+    }
+
+    private StepContext buildStepContext(
+            @NotNull String fromRank,
+            @NotNull String toRank,
+            @NotNull Player player,
+            @NotNull RanksService ranksService,
+            @NotNull RequirementService requirementService) {
+        // Get requirements for this transition
+        List<Requirement> requirements = ranksService.getRequirements(toRank, player);
+        List<RequirementContext> reqContexts = new ArrayList<>(requirements.size());
+
+        for (Requirement req : requirements) {
+            reqContexts.add(new RequirementContext(req, player, requirementService));
+        }
+
+        // Determine if root/terminal rank
+        List<String> allRanks = ranksService.getAllRanks();
+        boolean isRootRank = isRootRank(fromRank, ranksService, allRanks);
+        boolean isTerminalRank = ranksService.getNextRanks(toRank).isEmpty();
+
+        return new StepContext(fromRank, toRank, isRootRank, isTerminalRank, reqContexts);
+    }
+
+    private boolean isRootRank(String rank, RanksService ranksService, List<String> allRanks) {
+        // A root rank has no incoming transitions
+        for (String otherRank : allRanks) {
+            if (!otherRank.equals(rank)) {
+                Map<String, String> nextRanks = ranksService.getNextRanks(otherRank);
+                if (nextRanks.containsKey(rank)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**

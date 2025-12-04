@@ -2,24 +2,24 @@ package dev.flur.ranks.vault;
 
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
-import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * Default implementation of VaultProvider that uses the actual Vault services.
  */
 public class DefaultVaultProvider implements VaultProvider {
 
-    private final JavaPlugin plugin;
+    private final Plugin plugin;
     private Economy economy;
     private Permission permission;
 
     /**
      * Constructs a new DefaultVaultProvider.
      *
-     * @param plugin the JavaPlugin instance
+     * @param plugin the Plugin instance
      */
-    public DefaultVaultProvider(JavaPlugin plugin) {
+    public DefaultVaultProvider(Plugin plugin) {
         this.plugin = plugin;
         setupEconomy();
         setupPermissions();

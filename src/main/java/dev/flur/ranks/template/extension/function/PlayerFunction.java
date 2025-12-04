@@ -80,7 +80,7 @@ public class PlayerFunction implements Function {
 
         // Stats
         map.put("health", player.getHealth());
-        var maxHealthAttr = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        var maxHealthAttr = player.getAttribute(Attribute.MAX_HEALTH);
         map.put("maxHealth", maxHealthAttr != null ? maxHealthAttr.getValue() : 20.0);
         map.put("foodLevel", player.getFoodLevel());
         map.put("level", player.getLevel());

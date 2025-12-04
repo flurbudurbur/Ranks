@@ -185,7 +185,7 @@ class RequirementsCommandTest {
 
         @Test
         @DisplayName("onTabComplete returns empty list when args length is not 1")
-        void testOnTabCompleteWithInvalidArgsLength() {
+        void testOnTabCompleteWithMultipleArgs_ReturnsEmptyList() {
             // Arrange
             String[] args = new String[]{"arg1", "arg2"};
             Map<String, String> nextRanks = new HashMap<>();

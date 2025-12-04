@@ -11,7 +11,6 @@ import dev.flur.ranks.template.extension.RanksExtension;
 import dev.flur.ranks.template.extension.function.TranslateFunction;
 import dev.flur.ranks.template.loader.CompositeTemplateLoader;
 import dev.flur.ranks.template.loader.FileTemplateLoader;
-import dev.flur.ranks.template.loader.SyntaxTransformer;
 import dev.flur.ranks.template.loader.TemplateLoader;
 import io.pebbletemplates.pebble.extension.Extension;
 import net.kyori.adventure.text.Component;
@@ -105,6 +104,12 @@ public class DefaultTemplateService implements TemplateService {
         Map<String, Object> fullContext = new HashMap<>(context);
         fullContext.put("locale", locale);
 
+        // Check if template is a file reference (starts with @)
+        if (template.startsWith("@")) {
+            String templateName = template.substring(1).trim();
+            return engine.render(templateName, fullContext);
+        }
+
         return engine.renderInline(template, fullContext);
     }
 
@@ -112,7 +117,7 @@ public class DefaultTemplateService implements TemplateService {
     @NotNull
     public Result<Component> renderLayout(@NotNull String layoutName,
                                           @NotNull Map<String, Object> context) {
-        String path = layoutName.startsWith("layouts/") ? layoutName : "layouts/" + layoutName;
+        String path = layoutName;
         return engine.render(path, context);
     }
 
@@ -183,9 +188,7 @@ public class DefaultTemplateService implements TemplateService {
         for (Path path : config.getTemplatePaths()) {
             // Use .peb for templates folder, .yml for locale folder
             String suffix = path.endsWith(Path.of("locale")) ? ".yml" : "";
-            FileTemplateLoader fileLoader = new FileTemplateLoader(path, suffix);
-            SyntaxTransformer transformer = new SyntaxTransformer(fileLoader);
-            loaders.add(transformer);
+            loaders.add(new FileTemplateLoader(path, suffix));
         }
 
         CompositeTemplateLoader compositeLoader = new CompositeTemplateLoader(loaders);

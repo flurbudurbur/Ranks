@@ -1,6 +1,6 @@
 package dev.flur.ranks.requirement;
 
-import dev.flur.ranks.service.services.DefaultRequirementRegistry;
+import dev.flur.ranks.service.services.DefaultRequirementService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -11,15 +11,15 @@ import static org.mockito.Mockito.*;
 
 class RequirementFactoryTest {
 
-    private DefaultRequirementRegistry registry;
+    private DefaultRequirementService requirementService;
     private RequirementFactory factory;
     private Logger mockLogger;
 
     @BeforeEach
     void setUp() {
         mockLogger = mock(Logger.class);
-        registry = new DefaultRequirementRegistry(mockLogger);
-        factory = new RequirementFactory(registry);
+        requirementService = new DefaultRequirementService(mockLogger);
+        factory = new RequirementFactory(requirementService);
     }
 
     @Test
@@ -85,7 +85,7 @@ class RequirementFactoryTest {
     @Test
     void testCreateRequirement_CustomRequirement() {
         // Arrange - register a custom requirement
-        registry.register("custom-test", 1, 2, "Format: amount",
+        requirementService.register("custom-test", 1, 2, "Format: amount",
                 params -> new BaseRequirement(params) {
                     @Override
                     public boolean meetsRequirement(org.bukkit.entity.Player player) {

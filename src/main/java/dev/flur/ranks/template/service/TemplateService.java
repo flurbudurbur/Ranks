@@ -61,7 +61,7 @@ public interface TemplateService {
     /**
      * Renders a layout template.
      *
-     * @param layoutName The layout name (e.g., "layouts/default")
+     * @param layoutName The layout name (e.g., "default")
      * @param context    Context variables
      * @return Result containing the rendered Component or error
      */

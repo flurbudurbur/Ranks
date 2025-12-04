@@ -16,6 +16,11 @@ public final class XpLevelRequirement extends BaseRequirement {
     }
 
     @Override
+    public double getCurrent(@NotNull Player player) {
+        return player.getLevel();
+    }
+
+    @Override
     public String toString() {
         return "xp-level: " + (int) super.amount;
     }

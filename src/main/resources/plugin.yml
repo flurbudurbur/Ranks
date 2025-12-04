@@ -10,4 +10,19 @@ softdepend:
 authors:
   - 'flurbudurbur'
 
-# Commands will be auto-generated and merged here
+commands:
+  ranks:
+    description: "View available ranks or manage the plugin"
+    usage: "/ranks [reload [full]]"
+  rankup:
+    description: "Rank up to the next available rank"
+    usage: "/rankup [rank]"
+  requirements:
+    description: "View requirements for ranks"
+    usage: "/requirements [rank]"
+    aliases: [reqs]
+
+permissions:
+  ranks.admin.reload:
+    description: "Allows reloading the ranks plugin configuration"
+    default: op

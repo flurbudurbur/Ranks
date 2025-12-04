@@ -12,6 +12,22 @@ import java.util.regex.Pattern;
 
 public final class TimeSinceDeathRequirement extends BaseRequirement {
 
+    // Pre-compiled patterns for better performance
+    private static final Pattern MONTH_PATTERN = Pattern.compile("^M(\\d+)$");
+    private static final Pattern WEEK_PATTERN = Pattern.compile("^w(\\d+)$");
+    private static final Pattern DAY_PATTERN = Pattern.compile("^d(\\d+)$");
+    private static final Pattern HOUR_PATTERN = Pattern.compile("^h(\\d+)$");
+    private static final Pattern MINUTE_PATTERN = Pattern.compile("^m(\\d+)$");
+    private static final Pattern SECOND_PATTERN = Pattern.compile("^s(\\d+)$");
+    private static final Pattern COMPLEX_PATTERN = Pattern.compile(
+            "^(?:M(\\d+))?" +
+            "(?:w(\\d+))?" +
+            "(?:d(\\d+))?" +
+            "(?:h(\\d+))?" +
+            "(?:m(\\d+))?" +
+            "(?:s(\\d+))?$"
+    );
+
     private final long ticksSinceDeath;
 
     public TimeSinceDeathRequirement(String[] params) {
@@ -45,59 +61,41 @@ public final class TimeSinceDeathRequirement extends BaseRequirement {
     }
 
     private long parseDuration(String duration) {
-        // Simple patterns for each time unit
-        Pattern monthPattern = Pattern.compile("^M(\\d+)$");
-        Pattern weekPattern = Pattern.compile("^w(\\d+)$");
-        Pattern dayPattern = Pattern.compile("^d(\\d+)$");
-        Pattern hourPattern = Pattern.compile("^h(\\d+)$");
-        Pattern minutePattern = Pattern.compile("^m(\\d+)$");
-        Pattern secondPattern = Pattern.compile("^s(\\d+)$");
-
-        // Complex pattern for combined format
-        Pattern complexPattern = Pattern.compile(
-                "^(?:M(\\d+))?" +
-                "(?:w(\\d+))?" +
-                "(?:d(\\d+))?" +
-                "(?:h(\\d+))?" +
-                "(?:m(\\d+))?" +
-                "(?:s(\\d+))?$"
-        );
-
         Matcher matcher;
 
         // Try to match with the complex pattern first
-        matcher = complexPattern.matcher(duration);
+        matcher = COMPLEX_PATTERN.matcher(duration);
         if (matcher.matches()) {
             return calculateTotalTicks(matcher);
         }
 
         // Try to match with individual patterns
-        matcher = monthPattern.matcher(duration);
+        matcher = MONTH_PATTERN.matcher(duration);
         if (matcher.matches()) {
             return Long.parseLong(matcher.group(1)) * 30L * 24 * 60 * 60 * 20; // months to ticks
         }
 
-        matcher = weekPattern.matcher(duration);
+        matcher = WEEK_PATTERN.matcher(duration);
         if (matcher.matches()) {
             return Long.parseLong(matcher.group(1)) * 7L * 24 * 60 * 60 * 20; // weeks to ticks
         }
 
-        matcher = dayPattern.matcher(duration);
+        matcher = DAY_PATTERN.matcher(duration);
         if (matcher.matches()) {
             return Long.parseLong(matcher.group(1)) * 24L * 60 * 60 * 20; // days to ticks
         }
 
-        matcher = hourPattern.matcher(duration);
+        matcher = HOUR_PATTERN.matcher(duration);
         if (matcher.matches()) {
             return Long.parseLong(matcher.group(1)) * 60L * 60 * 20; // hours to ticks
         }
 
-        matcher = minutePattern.matcher(duration);
+        matcher = MINUTE_PATTERN.matcher(duration);
         if (matcher.matches()) {
             return Long.parseLong(matcher.group(1)) * 60L * 20; // minutes to ticks
         }
 
-        matcher = secondPattern.matcher(duration);
+        matcher = SECOND_PATTERN.matcher(duration);
         if (matcher.matches()) {
             return Long.parseLong(matcher.group(1)) * 20; // seconds to ticks
         }
@@ -197,6 +195,16 @@ public final class TimeSinceDeathRequirement extends BaseRequirement {
     @Override
     protected double parseAmount(String[] params) {
         return 1; // Duration parsing is handled separately
+    }
+
+    @Override
+    public double getTarget() {
+        return ticksSinceDeath;
+    }
+
+    @Override
+    public double getCurrent(@NotNull Player player) {
+        return Objects.requireNonNull(player.getPlayer()).getStatistic(Statistic.TIME_SINCE_DEATH);
     }
 
     @Override

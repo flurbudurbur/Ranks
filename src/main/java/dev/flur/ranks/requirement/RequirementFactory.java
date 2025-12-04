@@ -1,30 +1,30 @@
 package dev.flur.ranks.requirement;
 
-import dev.flur.ranks.service.services.DefaultRequirementRegistry;
+import dev.flur.ranks.service.RequirementService;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Factory class for creating requirement instances from string representations.
  * <p>
- * This factory works with the {@link DefaultRequirementRegistry} to create
+ * This factory works with the {@link RequirementService} to create
  * requirement instances based on registered requirement types.
  * </p>
  *
- * @see DefaultRequirementRegistry
+ * @see RequirementService
  * @see RequirementType
  */
 @SuppressWarnings("ClassCanBeRecord")
 public class RequirementFactory {
 
-    private final DefaultRequirementRegistry registry;
+    private final RequirementService requirementService;
 
     /**
-     * Creates a new RequirementFactory with the specified registry.
+     * Creates a new RequirementFactory with the specified service.
      *
-     * @param registry the requirement registry to use
+     * @param requirementService the requirement service to use
      */
-    public RequirementFactory(@NotNull DefaultRequirementRegistry registry) {
-        this.registry = registry;
+    public RequirementFactory(@NotNull RequirementService requirementService) {
+        this.requirementService = requirementService;
     }
 
     /**
@@ -50,7 +50,7 @@ public class RequirementFactory {
         String[] params = new String[tokens.length - 1];
         System.arraycopy(tokens, 1, params, 0, params.length);
 
-        return registry.create(key, params);
+        return requirementService.create(key, params);
     }
 
     /**

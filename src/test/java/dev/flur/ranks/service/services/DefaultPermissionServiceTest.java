@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,8 +30,10 @@ class DefaultPermissionServiceTest {
         logger = mock(Logger.class);
         player = mock(Player.class);
 
-        // Set up player mock
+        // Set up player mock with UUID (needed for hashCode in Maps)
+        UUID playerUUID = UUID.randomUUID();
         when(player.getName()).thenReturn("TestPlayer");
+        when(player.getUniqueId()).thenReturn(playerUUID);
 
         // Create service
         permissionService = new DefaultPermissionService(permission, logger);

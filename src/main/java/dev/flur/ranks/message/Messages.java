@@ -20,30 +20,33 @@ public enum Messages {
     RELOAD_FULL_COMPLETED("reload.full-completed", "reload.full.success"),
 
     // Rankup command messages
-    HIGHEST_RANK("rankup.highest-rank", "highest.rank"),
-    MULTIPLE_RANKS("rankup.multiple-ranks", "multiple.ranks"),
-    RANK_LIST_ITEM("rankup.rank-list-item", "rank.list.item"),
-    RANKUP_SUCCESS("rankup.success", "success"),
-    REQUIREMENTS_NOT_MET("rankup.requirements-not-met", "requirements.not.met"),
-    REQUIREMENT_ITEM("rankup.requirement-item", "requirement.item"),
-    INVALID_RANK("rankup.invalid-rank", "invalid.rank"),
-    CURRENT_RANK_ERROR("rankup.current-rank-error", "current.rank.error"),
-    RANKUP_FAILED("rankup.failed", "rankup.failed"),
-    RANKUP_BROADCAST("rankup.broadcast", "rankup.broadcast");
+    HIGHEST_RANK("rank.highest-rank", "rank.highest", "rank.reached-highest"),
+    MULTIPLE_RANKS("rank.multiple-ranks", "multiple.ranks"),
+    RANK_LIST_ITEM("rank.rank-list-item", "rank.list.item"),
+    RANKUP_SUCCESS("rank.success", "success"),
+    UNMET_REQUIREMENTS("rank.unmet-requirements"),
+    REQUIREMENT_ITEM("rank.requirement-item"),
+    INVALID_RANK("rank.invalid-rank"),
+    CURRENT_RANK_ERROR("rank.current-rank-error", "current.rank.error"),
+    RANKUP_FAILED("rank.failed", "rank.failed"),
+    RANKUP_BROADCAST("rank.broadcast", "rank.broadcast");
 
-    private static final Map<String, Messages> KEY_MAP = new HashMap<>();
+    private static final Map<String, Messages> KEY_MAP;
 
     static {
         // Build the key mapping including all aliases
+        Map<String, Messages> keyMap = new HashMap<>();
         for (Messages message : values()) {
             // Add primary key
-            KEY_MAP.put(message.primaryKey, message);
+            keyMap.put(message.primaryKey, message);
 
             // Add all aliases
             for (String alias : message.aliases) {
-                KEY_MAP.put(alias, message);
+                keyMap.put(alias, message);
             }
         }
+        // Make immutable for thread safety
+        KEY_MAP = Map.copyOf(keyMap);
     }
 
     private final String primaryKey;

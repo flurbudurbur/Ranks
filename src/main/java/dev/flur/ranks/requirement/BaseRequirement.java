@@ -39,4 +39,9 @@ public abstract class BaseRequirement implements Requirement {
     public void consume(@NotNull Player player) {
         // Default: no consumption. Override in subclasses if needed.
     }
+
+    @Override
+    public double getTarget() {
+        return amount;
+    }
 }

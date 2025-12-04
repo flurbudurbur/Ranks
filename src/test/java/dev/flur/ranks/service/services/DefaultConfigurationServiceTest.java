@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -127,11 +128,11 @@ class DefaultConfigurationServiceTest {
             String fileName = "invalid";
             File configFile = new File(dataFolder, fileName + ".yml");
 
-            // Create an invalid YAML file
+            // Create an invalid YAML file - using truly invalid YAML with unclosed bracket
             if (!configFile.getParentFile().exists()) {
                 configFile.getParentFile().mkdirs();
             }
-            Files.writeString(configFile.toPath(), "invalid: yaml: content:");
+            Files.writeString(configFile.toPath(), "key: [unclosed");
 
             // Mock YamlConfiguration to throw exception
             JavaPlugin mockPlugin = mock(JavaPlugin.class);
@@ -256,37 +257,29 @@ class DefaultConfigurationServiceTest {
         @Test
         @DisplayName("Should handle directory creation failure")
         void shouldHandleDirectoryCreationFailure() {
-            // This test is more complex to set up with mocks due to File class behavior
-            // Instead, we'll test the directory creation failure by creating a file where a directory should be
-
-            // Arrange
-            String fileName = "dirfail";
-            File configDir = new File(dataFolder, "dirfail-parent");
+            // This test verifies that when directory creation fails, the appropriate error is logged
+            // We simulate this by creating a file where a parent directory should exist
 
             try {
-                // Create a file where the directory should be
-                if (!configDir.getParentFile().exists()) {
-                    configDir.getParentFile().mkdirs();
-                }
-                // Create a regular file instead of a directory
-                Files.writeString(configDir.toPath(), "This is a file, not a directory");
+                // Create a file that blocks directory creation
+                String fileName = "blocked/config";
+                File blockingFile = new File(dataFolder, "blocked");
 
-                // Create a mock plugin that returns this path
-                JavaPlugin mockPlugin = mock(JavaPlugin.class);
-                when(mockPlugin.getDataFolder()).thenReturn(configDir);
-                when(mockPlugin.getLogger()).thenReturn(logger);
-                when(mockPlugin.getResource(anyString())).thenReturn(null);
+                // Create a regular file with the name "blocked" to prevent directory creation
+                Files.writeString(blockingFile.toPath(), "This blocks directory creation");
 
-                // Create a new service with our mocked plugin
-                DefaultConfigurationService mockedService = new DefaultConfigurationService(mockPlugin);
+                // Mock plugin resource to return something so it tries to generate the file
+                InputStream mockStream = new ByteArrayInputStream("test: data".getBytes(StandardCharsets.UTF_8));
+                when(plugin.getResource(fileName + ".yml")).thenReturn(mockStream);
 
                 // Act
-                FileConfiguration config = mockedService.getConfiguration(fileName);
+                FileConfiguration config = configService.getConfiguration(fileName);
 
                 // Assert
                 assertNotNull(config);
-                // The implementation might handle this differently, so we'll check for any log message
-                verify(logger, atLeastOnce()).warning(anyString());
+                // When directory creation or file generation fails, verify a SEVERE level error is logged
+                // The specific message depends on where the failure occurs, but it should be severe
+                verify(logger).log(eq(Level.SEVERE), contains("Failed to"), any(Exception.class));
             } catch (IOException e) {
                 fail("Test setup failed", e);
             }

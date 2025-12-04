@@ -58,7 +58,7 @@ public final class MinecraftContext {
         }
 
         public double getMaxHealth() {
-            var attribute = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+            var attribute = player.getAttribute(Attribute.MAX_HEALTH);
             return attribute != null ? attribute.getValue() : 20.0;
         }
 
@@ -138,7 +138,10 @@ public final class MinecraftContext {
          */
         @NotNull
         public Map<String, Object> toMap() {
-            Map<String, Object> map = new HashMap<>();
+            // Cache location to avoid multiple getLocation() calls
+            Location loc = player.getLocation();
+
+            Map<String, Object> map = new HashMap<>(22);
             map.put("name", getName());
             map.put("displayName", getDisplayName());
             map.put("uuid", getUuid());
@@ -155,10 +158,10 @@ public final class MinecraftContext {
             map.put("isOnline", isOnline());
             map.put("isOp", isOp());
             map.put("world", getWorld());
-            map.put("x", getX());
-            map.put("y", getY());
-            map.put("z", getZ());
-            map.put("location", getLocation());
+            map.put("x", loc.getBlockX());
+            map.put("y", loc.getBlockY());
+            map.put("z", loc.getBlockZ());
+            map.put("location", loc);
             map.put("firstPlayed", getFirstPlayed());
             map.put("lastPlayed", getLastPlayed());
             return map;

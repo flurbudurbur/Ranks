@@ -1,0 +1,9 @@
+{# Template for displaying unmet requirements #}
+{% extends "default" %}
+
+{% block content %}
+<red>Requirements for <yellow>{{ step.to }}</yellow> ({{ step.progressPercent }}% complete):
+{% for req in step.requirements %}
+<gray>- {% if req.satisfied %}<green>{% else %}<red>{% endif %} {{ req.label }} ({{ req.current | compact }}/{{ req.target | compact }})
+{% endfor %}
+{% endblock %}

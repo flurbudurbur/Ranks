@@ -5,27 +5,25 @@ import dev.flur.ranks.message.Messages;
 import dev.flur.ranks.result.Result;
 import dev.flur.ranks.service.MessageService;
 import dev.flur.ranks.template.service.TemplateService;
-import net.kyori.adventure.audience.Audience;
-import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Logger;
 
 /**
  * Default implementation of the MessageService interface.
- * Delegates template rendering to TemplateService while managing message delivery via BukkitAudiences.
+ * Delegates template rendering to TemplateService while managing message delivery via Paper's native Adventure API.
  */
 public class DefaultMessageService implements MessageService {
     private static final String DEFAULT_LOCALE = "en";
 
     private final TemplateService templateService;
-    private final BukkitAudiences audiences;
     private final String defaultLocale;
     private final Logger logger;
 
@@ -34,13 +32,10 @@ public class DefaultMessageService implements MessageService {
      *
      * @param plugin          The plugin instance
      * @param templateService The template service for rendering messages
-     * @param audiences       The BukkitAudiences instance for message delivery
      */
     public DefaultMessageService(@NotNull Ranks plugin,
-                                 @NotNull TemplateService templateService,
-                                 @NotNull BukkitAudiences audiences) {
+                                 @NotNull TemplateService templateService) {
         this.templateService = templateService;
-        this.audiences = audiences;
         this.logger = plugin.getLogger();
 
         // Load default locale from config
@@ -72,33 +67,28 @@ public class DefaultMessageService implements MessageService {
     public void sendMessage(@NotNull CommandSender sender, @NotNull Messages message, Map<String, Object> context) {
         String locale = getLocaleForSender(sender);
         Component component = getMessage(message, locale, context);
-
-        Audience audience = audiences.sender(sender);
-        audience.sendMessage(component);
+        sender.sendMessage(component);
     }
 
     @Override
     public void sendMessage(@NotNull CommandSender sender, @NotNull Messages message) {
-        sendMessage(sender, message, new HashMap<>());
+        sendMessage(sender, message, Collections.emptyMap());
     }
 
     @Override
     public void broadcastMessage(@NotNull Messages message, Map<String, Object> context) {
         Component component = getMessage(message, defaultLocale, context);
-        Audience audience = audiences.all();
-        audience.sendMessage(component);
+        Bukkit.getServer().broadcast(component);
     }
 
     @Override
     public void broadcastMessage(@NotNull Messages message) {
-        broadcastMessage(message, new HashMap<>());
+        broadcastMessage(message, Collections.emptyMap());
     }
 
     @Override
     public void shutdown() {
-        if (audiences != null) {
-            audiences.close();
-        }
+        // No cleanup needed - Paper manages Adventure lifecycle
     }
 
     /**

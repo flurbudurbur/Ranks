@@ -1,6 +1,5 @@
 package dev.flur.ranks.command.commands;
 
-import dev.flur.commands.CommandInfo;
 import dev.flur.ranks.command.BaseCommand;
 import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.service.RanksService;
@@ -14,11 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-@CommandInfo(
-        name = "requirements",
-        permission = "ranks.requirements",
-        description = "View requirements for ranks"
-)
 public final class RequirementsCommand extends BaseCommand {
 
     private final RanksService ranksService;

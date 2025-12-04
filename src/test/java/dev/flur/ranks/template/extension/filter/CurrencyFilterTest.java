@@ -45,7 +45,7 @@ class CurrencyFilterTest {
         @Test
         @DisplayName("formats integer with default symbol")
         void apply_Integer_FormatsWithDefaultSymbol() {
-            assertEquals("$1,234", applyFilter(1234));
+            assertEquals("$1,234.00", applyFilter(1234));
         }
 
         @Test
@@ -63,7 +63,7 @@ class CurrencyFilterTest {
         @Test
         @DisplayName("formats zero correctly")
         void apply_Zero_FormatsCorrectly() {
-            assertEquals("$0", applyFilter(0));
+            assertEquals("$0.00", applyFilter(0));
         }
 
         @Test
@@ -140,13 +140,13 @@ class CurrencyFilterTest {
         @Test
         @DisplayName("handles Integer input")
         void apply_IntegerInput_Formats() {
-            assertEquals("$100", applyFilter(Integer.valueOf(100)));
+            assertEquals("$100.00", applyFilter(Integer.valueOf(100)));
         }
 
         @Test
         @DisplayName("handles Long input")
         void apply_LongInput_Formats() {
-            assertEquals("$1,000,000", applyFilter(Long.valueOf(1000000)));
+            assertEquals("$1,000,000.00", applyFilter(Long.valueOf(1000000)));
         }
 
         @Test

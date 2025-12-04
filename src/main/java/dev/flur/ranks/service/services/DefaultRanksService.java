@@ -5,16 +5,22 @@ import dev.flur.ranks.requirement.Requirement;
 import dev.flur.ranks.requirement.RequirementFactory;
 import dev.flur.ranks.service.ConfigurationService;
 import dev.flur.ranks.service.RanksService;
+import dev.flur.ranks.service.RequirementService;
 import net.milkbowl.vault.permission.Permission;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.yaml.snakeyaml.Yaml;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,25 +36,32 @@ public class DefaultRanksService implements RanksService {
     private final Ranks plugin;
     private final Permission permissions;
     private final Map<String, List<Requirement>> requirementCache = new ConcurrentHashMap<>();
-    private Map<String, String> ranksCache;
+    private Set<String> ranksCache;
+    private Map<String, List<Transition>> transitionsCache; // from rank -> list of transitions
 
-    public DefaultRanksService(@NotNull ConfigurationService configurationService, 
-                              @NotNull DefaultRequirementRegistry registry,
+    /**
+     * Represents a rank transition with requirements.
+     */
+    private record Transition(String from, String to, List<String> requirements) {}
+
+    public DefaultRanksService(@NotNull ConfigurationService configurationService,
+                              @NotNull RequirementService requirementService,
                               @NotNull Ranks plugin,
                               @NotNull Logger logger) {
         this.configurationService = configurationService;
         this.logger = logger;
         this.plugin = plugin;
         this.permissions = plugin.getVaultProvider().getPermissions();
-        this.requirementFactory = new RequirementFactory(registry);
-        this.ranksCache = new HashMap<>();
+        this.requirementFactory = new RequirementFactory(requirementService);
+        this.ranksCache = new HashSet<>();
+        this.transitionsCache = new HashMap<>();
         loadRanks();
     }
 
     @Override
     @NotNull
     public List<String> getAllRanks() {
-        return new ArrayList<>(ranksCache.keySet());
+        return List.copyOf(ranksCache);
     }
 
     @Override
@@ -56,30 +69,18 @@ public class DefaultRanksService implements RanksService {
     public Map<String, String> getNextRanks(@NotNull String currentRank) {
         Map<String, String> nextRanks = new HashMap<>();
 
-        if (!ranksCache.containsKey(currentRank)) {
+        if (!ranksCache.contains(currentRank)) {
             if (plugin.isDebugEnabled()) {
                 logger.warning("Current rank '" + currentRank + "' not found in configuration");
             }
             return nextRanks;
         }
 
-        try {
-            FileConfiguration ranksConfig = configurationService.getConfiguration("ranks");
-            String path = ranksCache.get(currentRank);
-            ConfigurationSection section = ranksConfig.getConfigurationSection(path + ".next");
-
-            if (section == null) {
-                return nextRanks;
+        List<Transition> transitions = transitionsCache.get(currentRank);
+        if (transitions != null) {
+            for (Transition transition : transitions) {
+                nextRanks.put(transition.to(), transition.to());
             }
-
-            for (String key : section.getKeys(false)) {
-                String name = section.getString(key);
-                if (name != null && !name.trim().isEmpty()) {
-                    nextRanks.put(key, name);
-                }
-            }
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to load next ranks for " + currentRank, e);
         }
 
         return nextRanks;
@@ -91,31 +92,46 @@ public class DefaultRanksService implements RanksService {
         try {
             String primaryGroup = permissions.getPrimaryGroup(player);
 
-            if (!ranksCache.containsKey(primaryGroup)) {
+            if (!ranksCache.contains(primaryGroup)) {
                 if (plugin.isDebugEnabled()) {
                     logger.warning("No rank configuration found for player " + player.getName()
                             + " with primary group: " + primaryGroup);
                 }
-                return new ArrayList<>();
+                return List.of();
             }
 
-            // Check cache first
+            // Check cache first - cached list is already immutable via List.copyOf()
             String cacheKey = primaryGroup + ":" + nextRank;
             List<Requirement> cached = requirementCache.get(cacheKey);
             if (cached != null) {
-                return new ArrayList<>(cached);
+                return cached;
             }
 
-            FileConfiguration ranksConfig = configurationService.getConfiguration("ranks");
-            String path = ranksCache.get(primaryGroup) + ".next." + nextRank + ".requirements";
+            // Find the transition from current rank to next rank
+            List<Transition> transitions = transitionsCache.get(primaryGroup);
+            Transition targetTransition = null;
+            if (transitions != null) {
+                for (Transition t : transitions) {
+                    if (t.to().equals(nextRank)) {
+                        targetTransition = t;
+                        break;
+                    }
+                }
+            }
+
+            if (targetTransition == null) {
+                if (plugin.isDebugEnabled()) {
+                    logger.warning("No transition found from " + primaryGroup + " to " + nextRank);
+                }
+                return List.of();
+            }
 
             if (plugin.isDebugEnabled()) {
-                logger.info("Loading requirements from path: " + path);
+                logger.info("Loading requirements for transition: " + primaryGroup + " -> " + nextRank);
             }
 
             List<Requirement> requirements = new ArrayList<>();
-            List<String> requirementStrings = ranksConfig.getStringList(path);
-            for (String reqString : requirementStrings) {
+            for (String reqString : targetTransition.requirements()) {
                 try {
                     Requirement requirement = requirementFactory.createRequirement(reqString);
                     requirements.add(requirement);
@@ -134,7 +150,7 @@ public class DefaultRanksService implements RanksService {
             return requirements;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Failed to load requirements for " + nextRank, e);
-            return new ArrayList<>();
+            return List.of();
         }
     }
 
@@ -199,30 +215,67 @@ public class DefaultRanksService implements RanksService {
         loadRanks();
     }
 
+    @SuppressWarnings("unchecked")
     private void loadRanks() {
-        Map<String, String> ranks = new HashMap<>();
+        Set<String> ranks = new HashSet<>();
+        Map<String, List<Transition>> transitions = new HashMap<>();
 
-        try {
-            FileConfiguration ranksFile = configurationService.getConfiguration("ranks");
+        File ranksFile = new File(plugin.getDataFolder(), "ranks.yml");
+        if (!ranksFile.exists()) {
+            plugin.saveResource("ranks.yml", false);
+        }
 
-            for (String key : ranksFile.getKeys(false)) {
-                String name = ranksFile.getString(key + ".name");
-                if (name == null || name.trim().isEmpty()) {
-                    logger.warning("Rank configuration '" + key + "' is missing a name and will be skipped");
-                    continue;
-                }
+        try (InputStream input = new FileInputStream(ranksFile)) {
+            Yaml yaml = new Yaml();
+            List<Map<String, Object>> transitionsList = yaml.load(input);
 
-                if (ranks.containsKey(name)) {
-                    logger.warning("Duplicate rank name '" + name + "' found. Only the first occurrence will be used.");
-                    continue;
-                }
-
-                ranks.put(name, key);
+            if (transitionsList == null) {
+                logger.warning("ranks.yml is empty or invalid");
+                this.ranksCache = ranks;
+                this.transitionsCache = transitions;
+                return;
             }
-        } catch (Exception e) {
+
+            for (Map<String, Object> transitionMap : transitionsList) {
+                String from = String.valueOf(transitionMap.get("from"));
+                String to = String.valueOf(transitionMap.get("to"));
+
+                if (from == null || from.equals("null") || from.trim().isEmpty()) {
+                    logger.warning("Transition is missing 'from' field and will be skipped");
+                    continue;
+                }
+                if (to == null || to.equals("null") || to.trim().isEmpty()) {
+                    logger.warning("Transition from '" + from + "' is missing 'to' field and will be skipped");
+                    continue;
+                }
+
+                // Deduce ranks from transitions
+                ranks.add(from);
+                ranks.add(to);
+
+                // Get requirements
+                List<String> requirements = new ArrayList<>();
+                Object reqObj = transitionMap.get("requirements");
+                if (reqObj instanceof List<?> reqList) {
+                    for (Object req : reqList) {
+                        if (req != null) {
+                            requirements.add(String.valueOf(req));
+                        }
+                    }
+                }
+
+                Transition transition = new Transition(from, to, List.copyOf(requirements));
+                transitions.computeIfAbsent(from, k -> new ArrayList<>()).add(transition);
+
+                if (plugin.isDebugEnabled()) {
+                    logger.info("Loaded transition: " + from + " -> " + to + " with " + requirements.size() + " requirements");
+                }
+            }
+        } catch (IOException e) {
             logger.log(Level.SEVERE, "Failed to load ranks configuration", e);
         }
 
         this.ranksCache = ranks;
+        this.transitionsCache = transitions;
     }
 }

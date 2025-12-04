@@ -1,72 +1,146 @@
 package dev.flur.ranks;
 
-import dev.flur.ranks.command.CommandManager;
-import dev.flur.ranks.service.ServiceContainer;
+import dev.flur.ranks.command.commands.RanksCommand;
+import dev.flur.ranks.command.commands.RankupCommand;
+import dev.flur.ranks.command.commands.RequirementsCommand;
+import dev.flur.ranks.command.commands.subcommands.ReloadSubCommand;
+import dev.flur.ranks.service.*;
+import dev.flur.ranks.service.services.*;
+import dev.flur.ranks.template.service.DefaultTemplateService;
+import dev.flur.ranks.template.service.TemplateService;
 import dev.flur.ranks.vault.DefaultVaultProvider;
 import dev.flur.ranks.vault.VaultProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+
 public final class Ranks extends JavaPlugin {
 
-    // Instance variables
     private VaultProvider vaultProvider;
-    private ServiceContainer serviceContainer;
     private boolean debug = false;
+
+    // Services
+    private ConfigurationService configurationService;
+    private TemplateService templateService;
+    private MessageService messageService;
+    private PermissionService permissionService;
+    private RequirementService requirementService;
+    private RanksService ranksService;
+    private RankupService rankupService;
 
     @Override
     public void onEnable() {
-        // Load configuration
         saveDefaultConfig();
+        saveDefaultResources();
         debug = getConfig().getBoolean("debug");
 
-        // Initialize core services
         vaultProvider = new DefaultVaultProvider(this);
+        initializeServices();
+        registerCommands();
 
-        // Initialize service container
-        serviceContainer = new ServiceContainer(this);
+        getLogger().info("Ranks plugin enabled");
+    }
 
-        // Start services
-        serviceContainer.start();
+    private void saveDefaultResources() {
+        // Save locale files
+        saveResourceIfMissing("locale/en.yml");
 
-        // Initialize command manager with dependency injection
-        new CommandManager(this, serviceContainer);
+        // Save template layouts
+        saveResourceIfMissing("templates/broadcast");
+        saveResourceIfMissing("templates/default");
+        saveResourceIfMissing("templates/unmet-requirements");
+    }
 
-        getLogger().info("Ranks plugin enabled with dependency injection");
+    private void saveResourceIfMissing(String resourcePath) {
+        File file = new File(getDataFolder(), resourcePath);
+        if (file.exists()) {
+            return;
+        }
+
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            getLogger().warning("Failed to create directory: " + parent.getPath());
+            return;
+        }
+
+        try (InputStream in = getResource(resourcePath)) {
+            if (in == null) {
+                getLogger().warning("Resource not found: " + resourcePath);
+                return;
+            }
+            Files.copy(in, file.toPath());
+        } catch (IOException e) {
+            getLogger().warning("Failed to save resource: " + resourcePath);
+        }
+    }
+
+    private void initializeServices() {
+        // Core services
+        configurationService = new DefaultConfigurationService(this);
+        templateService = new DefaultTemplateService(this, configurationService);
+        permissionService = new DefaultPermissionService(vaultProvider.getPermissions(), getLogger());
+        messageService = new DefaultMessageService(this, templateService);
+        requirementService = new DefaultRequirementService(getLogger());
+
+        // Business logic services
+        ranksService = new DefaultRanksService(configurationService, requirementService, this, getLogger());
+        rankupService = new DefaultRankupService(
+                permissionService,
+                requirementService,
+                messageService,
+                ranksService,
+                getLogger(),
+                getConfig().getBoolean("broadcast-rankups", true));
+    }
+
+    private void registerCommands() {
+        RanksCommand ranksCommand = new RanksCommand(ranksService);
+        ranksCommand.registerSubCommand("reload", new ReloadSubCommand(this, messageService));
+        register("ranks", ranksCommand);
+
+        register("rankup", new RankupCommand(rankupService, getLogger()));
+        register("requirements", new RequirementsCommand(ranksService, getLogger()));
+    }
+
+    private void register(String name, dev.flur.ranks.command.BaseCommand command) {
+        var cmd = getCommand(name);
+        if (cmd != null) {
+            cmd.setExecutor(command);
+            cmd.setTabCompleter(command);
+        } else {
+            getLogger().warning("Command '" + name + "' not found in plugin.yml");
+        }
     }
 
     @Override
     public void onDisable() {
-        // Shutdown services
-        if (serviceContainer != null) {
-            serviceContainer.stop();
+        if (templateService != null) {
+            templateService.shutdown();
         }
-
+        if (messageService != null) {
+            messageService.shutdown();
+        }
         getLogger().info("Ranks plugin disabled");
     }
 
-    /**
-     * Gets the VaultProvider instance.
-     *
-     * @return The VaultProvider instance
-     */
+    public void reload() {
+        configurationService.reloadConfigurations();
+        templateService.reload();
+        messageService.reload();
+        ranksService.reload();
+    }
+
     public VaultProvider getVaultProvider() {
         return vaultProvider;
     }
 
-    /**
-     * Gets the ServiceContainer instance.
-     *
-     * @return The ServiceContainer instance
-     */
-    public ServiceContainer getServiceContainer() {
-        return serviceContainer;
+    public RequirementService getRequirementService() {
+        return requirementService;
     }
 
-    /**
-     * Checks if debug mode is enabled.
-     *
-     * @return True if debug mode is enabled, false otherwise
-     */
     public boolean isDebugEnabled() {
         return debug;
     }

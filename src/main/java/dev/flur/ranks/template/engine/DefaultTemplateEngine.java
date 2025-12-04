@@ -117,9 +117,7 @@ public class DefaultTemplateEngine implements TemplateEngine {
     @NotNull
     public Result<String> renderInlineToString(@NotNull String template, @NotNull Map<String, Object> context) {
         try {
-            // Transform syntax before compiling
-            String transformed = transformSyntax(template);
-            PebbleTemplate pebbleTemplate = inlineEngine.getLiteralTemplate(transformed);
+            PebbleTemplate pebbleTemplate = inlineEngine.getLiteralTemplate(template);
             return evaluateTemplate(pebbleTemplate, context);
         } catch (PebbleException e) {
             String errorMsg = formatPebbleError(e, null);
@@ -250,16 +248,6 @@ public class DefaultTemplateEngine implements TemplateEngine {
     }
 
     /**
-     * Transforms Ranks syntax to Pebble syntax.
-     */
-    private String transformSyntax(String content) {
-        return content
-                .replaceAll("<<\\s*(.+?)\\s*>>", "{{ $1 }}")
-                .replaceAll("<\\[\\s*(.+?)\\s*]>", "{% $1 %}")
-                .replaceAll("<#\\s*(.+?)\\s*#>", "{# $1 #}");
-    }
-
-    /**
      * Validates template content.
      */
     private TemplateValidationResult validateContent(String content, @Nullable String templatePath) {
@@ -267,8 +255,7 @@ public class DefaultTemplateEngine implements TemplateEngine {
 
         // Validate Pebble syntax
         try {
-            String transformed = transformSyntax(content);
-            inlineEngine.getLiteralTemplate(transformed);
+            inlineEngine.getLiteralTemplate(content);
         } catch (PebbleException e) {
             issues.add(new TemplateValidationResult.TemplateIssue(
                     TemplateErrorType.SYNTAX_ERROR,
@@ -280,9 +267,8 @@ public class DefaultTemplateEngine implements TemplateEngine {
 
         // Validate MiniMessage syntax (basic check)
         try {
-            String transformed = transformSyntax(content);
             // Replace Pebble variables with placeholder text for MiniMessage validation
-            String forValidation = transformed
+            String forValidation = content
                     .replaceAll("\\{\\{.*?}}", "placeholder")
                     .replaceAll("\\{%.*?%}", "")
                     .replaceAll("\\{#.*?#}", "");

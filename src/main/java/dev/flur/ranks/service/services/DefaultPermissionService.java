@@ -15,7 +15,8 @@ import java.util.logging.Logger;
  */
 public class DefaultPermissionService implements PermissionService {
 
-    private static final long CACHE_TTL_MS = 500;
+    // Increased TTL to reduce Vault API calls - cache is still invalidated on group changes
+    private static final long CACHE_TTL_MS = 3000;
 
     private record CachedGroup(String group, long expiresAt) {
         boolean isExpired() {

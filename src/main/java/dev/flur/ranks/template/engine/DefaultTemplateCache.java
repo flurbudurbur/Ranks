@@ -5,19 +5,21 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * LRU cache implementation for compiled templates.
+ * Lock-free cache implementation for compiled templates.
+ * Uses ConcurrentHashMap for thread-safe concurrent access without synchronization.
+ * Eviction is based on compile time (oldest first) rather than true LRU for better concurrency.
  */
 public class DefaultTemplateCache implements TemplateCache {
 
     private final int maxSize;
     private final long ttlMillis;
     private final boolean hotReloadEnabled;
-    private final Map<String, CompiledTemplate> cache;
+    private final ConcurrentHashMap<String, CompiledTemplate> cache;
     private final AtomicLong hits = new AtomicLong(0);
     private final AtomicLong misses = new AtomicLong(0);
 
@@ -32,14 +34,7 @@ public class DefaultTemplateCache implements TemplateCache {
         this.maxSize = maxSize;
         this.ttlMillis = ttl != null ? ttl.toMillis() : -1;
         this.hotReloadEnabled = hotReloadEnabled;
-
-        // LinkedHashMap with access-order for LRU eviction
-        this.cache = new LinkedHashMap<>(16, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, CompiledTemplate> eldest) {
-                return size() > maxSize;
-            }
-        };
+        this.cache = new ConcurrentHashMap<>(maxSize);
     }
 
     /**
@@ -53,7 +48,7 @@ public class DefaultTemplateCache implements TemplateCache {
 
     @Override
     @Nullable
-    public synchronized CompiledTemplate get(@NotNull String cacheKey) {
+    public CompiledTemplate get(@NotNull String cacheKey) {
         CompiledTemplate template = cache.get(cacheKey);
         if (template != null) {
             hits.incrementAndGet();
@@ -64,17 +59,21 @@ public class DefaultTemplateCache implements TemplateCache {
     }
 
     @Override
-    public synchronized void put(@NotNull String cacheKey, @NotNull CompiledTemplate template) {
+    public void put(@NotNull String cacheKey, @NotNull CompiledTemplate template) {
+        // Evict oldest entries if at capacity
+        if (cache.size() >= maxSize) {
+            evictOldest();
+        }
         cache.put(cacheKey, template);
     }
 
     @Override
-    public synchronized void invalidate(@NotNull String cacheKey) {
+    public void invalidate(@NotNull String cacheKey) {
         cache.remove(cacheKey);
     }
 
     @Override
-    public synchronized boolean isValid(@NotNull String cacheKey, @Nullable Instant sourceModified) {
+    public boolean isValid(@NotNull String cacheKey, @Nullable Instant sourceModified) {
         CompiledTemplate template = cache.get(cacheKey);
 
         if (template == null) {
@@ -99,10 +98,31 @@ public class DefaultTemplateCache implements TemplateCache {
     }
 
     @Override
-    public synchronized void clear() {
+    public void clear() {
         cache.clear();
         hits.set(0);
         misses.set(0);
+    }
+
+    /**
+     * Evicts the oldest compiled template from the cache.
+     * Uses compile time for ordering since we don't track access time.
+     */
+    private void evictOldest() {
+        String oldestKey = null;
+        Instant oldestTime = null;
+
+        for (Map.Entry<String, CompiledTemplate> entry : cache.entrySet()) {
+            Instant compileTime = entry.getValue().compiledAt();
+            if (oldestTime == null || compileTime.isBefore(oldestTime)) {
+                oldestTime = compileTime;
+                oldestKey = entry.getKey();
+            }
+        }
+
+        if (oldestKey != null) {
+            cache.remove(oldestKey);
+        }
     }
 
     @Override

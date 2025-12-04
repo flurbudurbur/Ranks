@@ -17,6 +17,11 @@ public final class DeathsRequirement extends BaseRequirement {
     }
 
     @Override
+    public double getCurrent(@NotNull Player player) {
+        return player.getStatistic(Statistic.DEATHS);
+    }
+
+    @Override
     public String toString() {
         return "deaths: " + (int) super.amount;
     }

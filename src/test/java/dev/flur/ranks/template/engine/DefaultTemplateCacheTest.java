@@ -92,46 +92,55 @@ class DefaultTemplateCacheTest {
     }
 
     @Nested
-    @DisplayName("LRU Eviction")
-    class LRUEviction {
+    @DisplayName("Cache Eviction")
+    class CacheEviction {
 
         @Test
-        @DisplayName("evicts least recently used when exceeding max size")
-        void put_ExceedsMaxSize_EvictsLRU() {
+        @DisplayName("evicts oldest compiled template when exceeding max size")
+        void put_ExceedsMaxSize_EvictsOldestCompiled() {
             cache = new DefaultTemplateCache(3, null, false);
 
-            cache.put("a.peb", createTemplate("a.peb"));
-            cache.put("b.peb", createTemplate("b.peb"));
-            cache.put("c.peb", createTemplate("c.peb"));
+            // Create templates with explicit compile times
+            Instant t1 = Instant.now().minus(Duration.ofMinutes(30));
+            Instant t2 = Instant.now().minus(Duration.ofMinutes(20));
+            Instant t3 = Instant.now().minus(Duration.ofMinutes(10));
 
-            // Access "a" to make it recently used
+            cache.put("a.peb", createTemplate("a.peb", t1));
+            cache.put("b.peb", createTemplate("b.peb", t2));
+            cache.put("c.peb", createTemplate("c.peb", t3));
+
+            // Access "a" - but this doesn't affect eviction since it's compile-time based
             cache.get("a.peb");
 
-            // Add new entry, should evict "b" (least recently used)
+            // Add new entry, should evict "a" (oldest compiled)
             cache.put("d.peb", createTemplate("d.peb"));
 
-            assertNotNull(cache.get("a.peb"), "a.peb should still exist");
-            assertNull(cache.get("b.peb"), "b.peb should be evicted");
+            assertNull(cache.get("a.peb"), "a.peb should be evicted (oldest compiled)");
+            assertNotNull(cache.get("b.peb"), "b.peb should still exist");
             assertNotNull(cache.get("c.peb"), "c.peb should still exist");
             assertNotNull(cache.get("d.peb"), "d.peb should exist");
         }
 
         @Test
-        @DisplayName("get updates access order")
-        void get_UpdatesAccessOrder() {
+        @DisplayName("evicts oldest by compile time, not access time")
+        void put_ExceedsMaxSize_EvictsOldestByCompileTime() {
             cache = new DefaultTemplateCache(2, null, false);
 
-            cache.put("old.peb", createTemplate("old.peb"));
-            cache.put("new.peb", createTemplate("new.peb"));
+            // Create templates with explicit compile times
+            Instant oldest = Instant.now().minus(Duration.ofMinutes(10));
+            Instant newer = Instant.now().minus(Duration.ofMinutes(5));
 
-            // Access "old" to make it recently used
+            cache.put("old.peb", createTemplate("old.peb", oldest));
+            cache.put("new.peb", createTemplate("new.peb", newer));
+
+            // Access "old" - but this doesn't affect eviction since it's based on compile time
             cache.get("old.peb");
 
-            // Add another entry, should evict "new" (now least recently used)
+            // Add another entry, should evict "old" (oldest compile time) not "new"
             cache.put("newest.peb", createTemplate("newest.peb"));
 
-            assertNotNull(cache.get("old.peb"), "old.peb should still exist");
-            assertNull(cache.get("new.peb"), "new.peb should be evicted");
+            assertNull(cache.get("old.peb"), "old.peb should be evicted (oldest compile time)");
+            assertNotNull(cache.get("new.peb"), "new.peb should still exist");
         }
     }
 
@@ -153,11 +162,11 @@ class DefaultTemplateCacheTest {
         @Test
         @DisplayName("isValid returns false after TTL expires")
         void isValid_AfterTTL_ReturnsFalse() {
-            cache = new DefaultTemplateCache(100, Duration.ofMillis(1), false);
+            cache = new DefaultTemplateCache(100, Duration.ofSeconds(1), false);
             String key = "test.peb";
 
-            // Create template compiled in the past
-            Instant pastCompileTime = Instant.now().minus(Duration.ofSeconds(1));
+            // Create template compiled far enough in the past to guarantee expiration
+            Instant pastCompileTime = Instant.now().minus(Duration.ofSeconds(10));
             cache.put(key, createTemplate(key, pastCompileTime));
 
             assertFalse(cache.isValid(key, null));
@@ -187,12 +196,14 @@ class DefaultTemplateCacheTest {
             cache = new DefaultTemplateCache(100, null, true);
             String key = "test.peb";
 
-            Instant compiledAt = Instant.now().minus(Duration.ofMinutes(5));
-            Instant sourceModifiedAt = Instant.now().minus(Duration.ofMinutes(5));
+            // Use explicit timestamps with clear time differences
+            Instant baseTime = Instant.now().minus(Duration.ofMinutes(10));
+            Instant compiledAt = baseTime;
+            Instant sourceModifiedAt = baseTime;
             cache.put(key, createTemplate(key, compiledAt, sourceModifiedAt));
 
-            // Source was modified after compilation
-            Instant newerSourceTime = Instant.now();
+            // Source was modified after compilation (1 minute later)
+            Instant newerSourceTime = baseTime.plus(Duration.ofMinutes(1));
 
             assertFalse(cache.isValid(key, newerSourceTime));
         }

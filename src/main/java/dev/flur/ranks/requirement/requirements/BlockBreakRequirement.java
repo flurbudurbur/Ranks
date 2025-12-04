@@ -17,7 +17,7 @@ public final class BlockBreakRequirement extends BaseRequirement {
     public BlockBreakRequirement(String[] params) {
         super(params);
 
-        List<Material> resolved = new ArrayList<>();
+        List<Material> resolved = new ArrayList<>(params.length - 1);
         for (int i = 0; i < params.length - 1; i++) {
             Material mat = Material.getMaterial(params[i].toUpperCase());
             if (mat == null || !mat.isBlock()) {
@@ -37,6 +37,19 @@ public final class BlockBreakRequirement extends BaseRequirement {
             }
         }
         return true;
+    }
+
+    @Override
+    public double getCurrent(@NotNull Player player) {
+        // Return minimum progress across all required materials
+        int minCount = Integer.MAX_VALUE;
+        for (Material material : materials) {
+            int count = player.getStatistic(Statistic.MINE_BLOCK, material);
+            if (count < minCount) {
+                minCount = count;
+            }
+        }
+        return minCount == Integer.MAX_VALUE ? 0 : minCount;
     }
 
     @Override

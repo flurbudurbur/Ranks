@@ -17,7 +17,7 @@ public final class ItemUseRequirement extends BaseRequirement {
     public ItemUseRequirement(String[] params) {
         super(params);
 
-        List<Material> resolved = new ArrayList<>();
+        List<Material> resolved = new ArrayList<>(params.length - 1);
         for (int i = 0; i < params.length - 1; i++) {
             Material mat = Material.getMaterial(params[i].toUpperCase());
             if (mat == null) {
@@ -40,6 +40,19 @@ public final class ItemUseRequirement extends BaseRequirement {
             }
         }
         return true;
+    }
+
+    @Override
+    public double getCurrent(@NotNull Player player) {
+        // Return minimum progress across all required items
+        int minCount = Integer.MAX_VALUE;
+        for (Material item : items) {
+            int count = player.getStatistic(Statistic.USE_ITEM, item);
+            if (count < minCount) {
+                minCount = count;
+            }
+        }
+        return minCount == Integer.MAX_VALUE ? 0 : minCount;
     }
 
     @Override

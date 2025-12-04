@@ -7,7 +7,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicesManager;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -19,7 +18,7 @@ import static org.mockito.Mockito.*;
 class DefaultVaultProviderTest {
 
     @Mock
-    private JavaPlugin plugin;
+    private Plugin plugin;
     
     @Mock
     private Server server;

@@ -1,11 +1,7 @@
 package dev.flur.ranks.command.commands;
 
-import dev.flur.commands.CommandInfo;
 import dev.flur.ranks.command.BaseCommand;
-import dev.flur.ranks.requirement.Requirement;
-import dev.flur.ranks.service.RankupNotifier;
-import dev.flur.ranks.service.RankupProcessor;
-import dev.flur.ranks.service.RankupValidator;
+import dev.flur.ranks.service.RankupService;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -15,27 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-@CommandInfo(
-        name = "rankup",
-        permission = "ranks.rankup",
-        description = "Rank up to the next available rank"
-)
 public final class RankupCommand extends BaseCommand {
 
-    private final RankupValidator rankupValidator;
-    private final RankupProcessor rankupProcessor;
-    private final RankupNotifier rankupNotifier;
+    private final RankupService rankupService;
     private final Logger logger;
 
-    public RankupCommand(
-            @NotNull RankupValidator rankupValidator,
-            @NotNull RankupProcessor rankupProcessor,
-            @NotNull RankupNotifier rankupNotifier,
-            @NotNull Logger logger) {
+    public RankupCommand(@NotNull RankupService rankupService, @NotNull Logger logger) {
         super();
-        this.rankupValidator = rankupValidator;
-        this.rankupProcessor = rankupProcessor;
-        this.rankupNotifier = rankupNotifier;
+        this.rankupService = rankupService;
         this.logger = logger;
     }
 
@@ -43,40 +26,40 @@ public final class RankupCommand extends BaseCommand {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            rankupNotifier.sendPlayerOnlyMessage(sender);
+            rankupService.sendPlayerOnlyMessage(sender);
             return true;
         }
 
         try {
             return handleRankupCommand(player, args);
         } catch (Exception e) {
-            rankupNotifier.sendErrorMessage(player, e.getMessage());
+            rankupService.sendErrorMessage(player, e.getMessage());
             return true;
         }
     }
 
     private boolean handleRankupCommand(@NotNull Player player, @NotNull String[] args) {
-        String currentRank = rankupValidator.getCurrentRank(player);
-        if (rankupValidator.hasValidCurrentRank(player)) {
-            rankupNotifier.sendCurrentRankErrorMessage(player);
+        String currentRank = rankupService.getCurrentRank(player);
+        if (currentRank.isEmpty()) {
+            rankupService.sendCurrentRankErrorMessage(player);
             return true;
         }
 
-        Map<String, String> availableRanks = rankupProcessor.getAvailableRanks(player);
+        Map<String, String> availableRanks = rankupService.getAvailableRanks(player);
 
         if (availableRanks.isEmpty()) {
-            rankupNotifier.sendHighestRankMessage(player);
+            rankupService.sendHighestRankMessage(player);
             return true;
         }
 
-        if (rankupValidator.shouldShowRankOptions(availableRanks, args)) {
-            rankupNotifier.showAvailableRanks(player, availableRanks);
+        if (rankupService.shouldShowRankOptions(availableRanks, args)) {
+            rankupService.showAvailableRanks(player, availableRanks);
             return true;
         }
 
-        String targetRank = rankupValidator.determineTargetRank(availableRanks, args);
+        String targetRank = rankupService.determineTargetRank(availableRanks, args);
         if (targetRank == null) {
-            rankupNotifier.showInvalidRankMessage(player, availableRanks);
+            rankupService.showInvalidRankMessage(player, availableRanks);
             return true;
         }
 
@@ -84,21 +67,19 @@ public final class RankupCommand extends BaseCommand {
     }
 
     private boolean processRankup(@NotNull Player player, @NotNull String currentRank, @NotNull String targetRank) {
-        List<Requirement> unmetRequirements = rankupValidator.getUnmetRequirementsForRank(player, targetRank);
-
-        if (unmetRequirements.isEmpty()) {
-            return rankupProcessor.processRankup(player, currentRank, targetRank)
+        if (rankupService.canRankup(player, targetRank)) {
+            return rankupService.processRankup(player, targetRank)
                     .onSuccess(outcome -> {
-                        rankupNotifier.sendRankupSuccessMessage(player, targetRank);
-                        rankupNotifier.broadcastRankup(player, currentRank, targetRank);
+                        rankupService.sendRankupSuccessMessage(player, targetRank);
+                        rankupService.broadcastRankup(player, currentRank, targetRank);
                     })
                     .onFailure(errorMessage -> {
-                        rankupNotifier.sendRankupFailedMessage(player);
+                        rankupService.sendRankupFailedMessage(player);
                         logger.warning("Rankup failed: " + errorMessage);
                     })
                     .isSuccess();
         } else {
-            rankupNotifier.notifyUnmetRequirements(player, unmetRequirements);
+            rankupService.notifyUnmetRequirements(player, targetRank);
             return false;
         }
     }
@@ -115,21 +96,13 @@ public final class RankupCommand extends BaseCommand {
             return List.of();
         }
 
-        // Call hasValidCurrentRank outside the try-catch to ensure it's always called
-        boolean hasValidCurrentRank;
         try {
-            hasValidCurrentRank = rankupValidator.hasValidCurrentRank(player);
-        } catch (Exception e) {
-            logger.severe("Error in tab completion: " + e.getMessage());
-            return List.of();
-        }
+            String currentRank = rankupService.getCurrentRank(player);
+            if (currentRank.isEmpty()) {
+                return List.of();
+            }
 
-        if (hasValidCurrentRank) {
-            return List.of();
-        }
-
-        try {
-            Map<String, String> availableRanks = rankupProcessor.getAvailableRanks(player);
+            Map<String, String> availableRanks = rankupService.getAvailableRanks(player);
             String partial = args[0].toLowerCase();
 
             return availableRanks.keySet().stream()

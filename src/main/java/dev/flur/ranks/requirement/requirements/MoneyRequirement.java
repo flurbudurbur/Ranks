@@ -37,6 +37,11 @@ public final class MoneyRequirement extends BaseRequirement {
     }
 
     @Override
+    public double getCurrent(@NotNull Player player) {
+        return getEconomyBalance(player);
+    }
+
+    @Override
     public String toString() {
         return "money: " + super.amount;
     }
