@@ -2,13 +2,18 @@ name: ${project.name}
 version: ${project.version}
 main: dev.flur.ranks.Ranks
 api-version: '1.21'
-depend:
-  - 'Vault'
-softdepend:
-  - 'PlaceholderAPI'
-  - 'LuckPerms'
 authors:
   - 'flurbudurbur'
+
+depend:
+  - Vault
+
+softdepend:
+  - PlaceholderAPI
+  - LuckPerms
+
+libraries:
+  - org.apache.commons:commons-lang3:3.20.0
 
 commands:
   ranks:
@@ -20,7 +25,8 @@ commands:
   requirements:
     description: "View requirements for ranks"
     usage: "/requirements [rank]"
-    aliases: [reqs]
+    aliases:
+      - reqs
 
 permissions:
   ranks.admin.reload:

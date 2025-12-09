@@ -111,7 +111,7 @@ public final class Ranks extends JavaPlugin {
             cmd.setExecutor(command);
             cmd.setTabCompleter(command);
         } else {
-            getLogger().warning("Command '" + name + "' not found in plugin.yml");
+            getLogger().warning("Command '" + name + "' not found!");
         }
     }
 
